@@ -774,6 +774,9 @@ type UIShare = ParsedShare & { isHolder?: boolean };
 
     try {
       const bundle = extractBundle(zipData);
+      if (!bundle.share) {
+        throw new Error('No share found in bundle');
+      }
       const share = await parseShare(bundle.share);
       share.compact = await encodeCompact(share);
 
