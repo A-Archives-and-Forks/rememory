@@ -80,10 +80,10 @@ See the **[CLI User Guide](docs/guide.md)** for complete documentation.
 
 Before protecting real secrets, try the recovery process:
 
-1. **[Download demo bundles](https://github.com/eljojo/rememory/releases/latest/download/demo-bundles.zip)** (contains 3 sample bundles)
+1. **[Download demo bundles](https://github.com/eljojo/rememory/releases/latest/download/demo-bundles.zip)** (5 friends, any 3 can recover)
 2. Open `bundle-alice/recover.html` in your browser
-3. Alice's share is pre-loaded — add Bob's or Carol's
-4. When enough shares are added, the files unlock
+3. Alice's piece is pre-loaded — drag two more README files onto the page. Dragging an entire bundle works too.
+4. When enough pieces are combined, the files unlock
 
 This is the closest thing to what a real recovery feels like.
 
@@ -95,12 +95,12 @@ Each friend gets a ZIP bundle containing:
 
 | File | Purpose |
 |------|---------|
-| `README.txt` | Instructions, their unique share, contact list |
+| `README.txt` | Instructions, their unique piece, contact list |
 | `README.pdf` | Same content, formatted for printing |
 | `MANIFEST.age` | Your encrypted files (only included separately when over 10 MB) |
 | `recover.html` | Recovery tool (~300 KB), runs in any browser. For smaller archives, everything is embedded — just open this file |
 
-**A single share reveals nothing.** But tell your friends to keep their bundle somewhere safe — it's their responsibility to you.
+**A single piece reveals nothing.** But tell your friends to keep their bundle somewhere safe — it's their responsibility to you.
 
 ![Example README PDF — page 1](docs/screenshots/demo-pdf/page-1.png)
 
@@ -178,7 +178,7 @@ See the **[Security Review](docs/security-review.md)** for details.
 | Integrity | SHA-256 checksums |
 | Passphrase | 256 bits from crypto/rand |
 
-**A single share reveals nothing about your secret.** This is a mathematical guarantee of Shamir's Secret Sharing — any fewer than *threshold* shares contains zero information about the original secret.
+**A single piece reveals nothing about your secret.** This is a mathematical guarantee of Shamir's Secret Sharing — any fewer than *threshold* pieces contain zero information about the original secret.
 
 </details>
 
@@ -188,7 +188,7 @@ See the **[Security Review](docs/security-review.md)** for details.
 | What if... | Result |
 |------------|--------|
 | A friend loses their bundle? | Fine, as long as threshold friends remain |
-| A friend leaks their share publicly? | Harmless without threshold-1 other shares |
+| A friend leaks their piece publicly? | Harmless without threshold-1 other pieces |
 | ReMemory disappears in 10 years? | `recover.html` still works — it's self-contained |
 | Browsers change dramatically? | Pure JavaScript with no external dependencies |
 | You forget how this works? | Each bundle's README.txt explains everything |
@@ -249,7 +249,7 @@ ReMemory isn't the first tool to use Shamir's Secret Sharing. Its focus is makin
 **Key takeaways:**
 
 - Most tools only handle **text or passphrases** — [eljojo/rememory](https://github.com/eljojo/rememory), both horcrux projects, [henrysdev/Haystack](https://github.com/henrysdev/Haystack), [cyphar/paperback](https://github.com/cyphar/paperback), and [msolomon/keybearer](https://github.com/msolomon/keybearer) are the few that handle actual files.
-- Only [eljojo/rememory](https://github.com/eljojo/rememory) generates a **self-contained recovery tool** (`recover.html`) bundled with each share — no installation, no internet, no CLI needed.
+- Only [eljojo/rememory](https://github.com/eljojo/rememory) generates a **self-contained recovery tool** (`recover.html`) bundled with each piece — no installation, no internet, no CLI needed.
 - Only [eljojo/rememory](https://github.com/eljojo/rememory) includes **contact details** in each bundle so friends know how to reach each other during recovery.
 - [paritytech/banana_split](https://github.com/paritytech/banana_split) and [cyphar/paperback](https://github.com/cyphar/paperback) output **QR codes** for printing, which is great for paper-based backups of short secrets.
 - **Bitwarden Emergency Access** is fundamentally different — it delegates vault access to one trusted person (not M-of-N splitting) and requires an online service.
