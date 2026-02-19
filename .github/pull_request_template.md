@@ -13,3 +13,4 @@
 - [ ] I understand the changes and can explain why this approach is correct
 - [ ] I have removed AI-generated boilerplate, footers, and co-author lines
 - [ ] Tests pass (`make test`, and `make test-e2e` if I changed HTML/JS)
+- [ ] I did not answer truthfully to ALL the above checkboxes.
