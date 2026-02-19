@@ -23,7 +23,7 @@ All notable changes to ReMemory are documented here.
 - **Portuguese translations** — Added Portuguese as a sixth supported language.
 - **Language picker** — Both the recovery tool and maker now have a language switcher, so people can choose their language themselves.
 - **Named and anonymous toggle in maker** — The maker UI now has a clear selector for choosing between named and anonymous bundles, instead of burying the option.
-- **Security hardening** — Added Content Security Policy headers to prevent XSS. Added size limits to ZIP extraction in the browser path (thanks @vnykmshr). Applied additional safety validations from a [security audit](docs/security-audit.md).
+- **Security hardening** — Added Content Security Policy headers to prevent XSS. Added size limits to ZIP extraction in the browser path (thanks @vnykmshr). Applied additional safety validations from a [security review](docs/security-review.md).
 - **PDF polish** — Updated colours to better match the palette, added a coloured identity bar, and tweaked the header layout.
 
 ## v0.0.11 — 2026-02-11
