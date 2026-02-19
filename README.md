@@ -93,8 +93,8 @@ Each friend gets a ZIP bundle containing:
 |------|---------|
 | `README.txt` | Instructions, their unique share, contact list |
 | `README.pdf` | Same content, formatted for printing |
-| `MANIFEST.age` | Your encrypted files |
-| `recover.html` | Recovery tool (~300 KB), runs in any browser |
+| `MANIFEST.age` | Your encrypted files (only included separately when over 10 MB) |
+| `recover.html` | Recovery tool (~300 KB), runs in any browser. For smaller archives, everything is embedded — just open this file |
 
 **A single share reveals nothing.** But tell your friends to keep their bundle somewhere safe — it's their responsibility to you.
 
