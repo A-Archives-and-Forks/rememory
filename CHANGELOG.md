@@ -4,6 +4,8 @@ All notable changes to ReMemory are documented here.
 
 ## Unreleased
 
+- **ZIP archive format** — Encrypted payloads now use ZIP instead of tar.gz. ZIP is understood by every operating system without extra tools, which makes manual inspection easier if someone ever needs it. Existing bundles created with earlier versions still work — the recovery tool detects the format automatically.
+
 ## v0.0.14 — 2026-02-19
 
 - **Improved Docs**: improve guides on the website. Also updated demo bundles so it contains 5 friends instead of 3.
