@@ -92,5 +92,10 @@
   "tlock_waiting_message": "Öffnet am {0}. Warte hier, oder komm später wieder.",
   "tlock_waiting_message_relative": "Öffnet {0}. Gleich soweit.",
   "tlock_learn_more": "Was ist das?",
-  "tlock_no_support": "Dieses Archiv ist zeitgesperrt. Verwende die recover.html aus deinem Paket, um es zu öffnen."
+  "tlock_no_support": "Dieses Archiv ist zeitgesperrt. Verwende die recover.html aus deinem Paket, um es zu öffnen.",
+  "tlock_error_title": "Zeitsperre-Prüfung fehlgeschlagen",
+  "tlock_error_message": "Deine Teile haben funktioniert, aber die Zeitsperre konnte nicht bestätigt werden. Meistens bedeutet das, dass die Netzwerkanfrage blockiert wurde.",
+  "tlock_error_guidance": "Versuche es mit einem anderen Browser (Chrome funktioniert am besten), oder lade das gesperrte Archiv herunter und nutze das CLI-Tool.",
+  "tlock_error_status": "Zeitsperre-Prüfung fehlgeschlagen. Deine Teile stimmen — versuche es mit einem anderen Browser.",
+  "tlock_download_archive": "Gesperrtes Archiv herunterladen"
 }

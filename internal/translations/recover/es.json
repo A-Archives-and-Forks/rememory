@@ -92,5 +92,10 @@
   "tlock_waiting_message": "Se abre el {0}. Espera, o vuelve después.",
   "tlock_waiting_message_relative": "Se abre {0}. Ya casi.",
   "tlock_learn_more": "¿Qué es esto?",
-  "tlock_no_support": "Este archivo tiene un bloqueo por fecha. Usa el recover.html de tu kit para abrirlo."
+  "tlock_no_support": "Este archivo tiene un bloqueo por fecha. Usa el recover.html de tu kit para abrirlo.",
+  "tlock_error_title": "Falló la verificación del bloqueo por fecha",
+  "tlock_error_message": "Tus partes funcionaron, pero no se pudo verificar el bloqueo por fecha. Normalmente significa que la solicitud de red fue bloqueada.",
+  "tlock_error_guidance": "Prueba con otro navegador (Chrome funciona mejor), o descarga el archivo bloqueado y usa la herramienta CLI.",
+  "tlock_error_status": "Falló la verificación del bloqueo por fecha. Tus partes son correctas — prueba con otro navegador.",
+  "tlock_download_archive": "Descargar archivo bloqueado"
 }

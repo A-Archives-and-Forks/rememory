@@ -20,11 +20,14 @@ const (
 )
 
 // DrandEndpoints lists the public drand HTTP API relays, tried in order.
+// api.drand.sh is first because drand.cloudflare.com returns improper CORS
+// preflight responses (missing access-control-allow-methods), which causes
+// fetch failures in Safari and Firefox.
 var DrandEndpoints = []string{
-	"https://drand.cloudflare.com",
 	"https://api.drand.sh",
 	"https://api2.drand.sh",
 	"https://api3.drand.sh",
+	"https://drand.cloudflare.com",
 }
 
 // RoundForTime returns the drand quicknet round number that will be emitted

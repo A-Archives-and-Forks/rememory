@@ -39,10 +39,6 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Test tlock integration
-        run: make test-tlock
-        continue-on-error: true
-
       - name: Lint
         run: make lint
 
@@ -70,3 +66,6 @@ jobs:
 
       - name: Run Playwright E2E tests
         run: make test-e2e
+
+      - name: Test tlock integration
+        run: make test-tlock

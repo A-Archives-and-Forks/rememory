@@ -92,5 +92,10 @@
   "tlock_waiting_message": "{0} 開放。請稍候，或稍後再來。",
   "tlock_waiting_message_relative": "{0}開放。請稍候。",
   "tlock_learn_more": "這是什麼？",
-  "tlock_no_support": "此封存檔已被時間鎖定。請使用你復原包中的 recover.html 來開啟。"
+  "tlock_no_support": "此封存檔已被時間鎖定。請使用你復原包中的 recover.html 來開啟。",
+  "tlock_error_title": "時間鎖定驗證失敗",
+  "tlock_error_message": "你的金鑰片段沒有問題，但時間鎖定無法驗證。這通常代表網路請求被封鎖了。",
+  "tlock_error_guidance": "請試試其他瀏覽器（Chrome 相容性最佳），或下載鎖定的封存檔並使用命令列工具。",
+  "tlock_error_status": "時間鎖定驗證失敗。你的金鑰片段正確——請試試其他瀏覽器。",
+  "tlock_download_archive": "下載鎖定的封存檔"
 }

@@ -62,6 +62,9 @@ type UIShare = ParsedShare & { isHolder?: boolean };
     recoveryComplete: false
   };
 
+  // Tlock container bytes (saved after age-decrypt for failsafe download if tlock fails)
+  let tlockContainerData: Uint8Array | null = null;
+
   // DOM elements interface
   interface Elements {
     shareDropZone: HTMLElement | null;
@@ -1165,6 +1168,9 @@ type UIShare = ParsedShare & { isHolder?: boolean };
           throw new Error('Time-lock decryption not available');
         }
 
+        // Save container for failsafe download if tlock decrypt fails
+        tlockContainerData = archive;
+
         const { meta, ciphertext } = openTlockContainer(archive);
         const unlockDate = new Date(meta.unlock);
 
@@ -1177,6 +1183,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
             (date) => showTlockWaiting(date),
             async (decryptedArchive) => {
               hideTlockWaiting();
+              tlockContainerData = null;
               state.recovering = true;
               elements.progressBar?.classList.remove('hidden');
               try {
@@ -1191,7 +1198,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
             },
             (err) => {
               hideTlockWaiting();
-              handleRecoveryError(err);
+              handleTlockError(err);
             },
           );
           state.recovering = false;
@@ -1200,7 +1207,13 @@ type UIShare = ParsedShare & { isHolder?: boolean };
 
         // Time lock passed — decrypt now
         setStatus(t('tlock_decrypting'));
-        archive = await window.rememoryTlock.decrypt(ciphertext);
+        try {
+          archive = await window.rememoryTlock.decrypt(ciphertext);
+          tlockContainerData = null;
+        } catch (tlockErr) {
+          handleTlockError(tlockErr);
+          return;
+        }
       }
 
       setProgress(60);
@@ -1263,6 +1276,49 @@ type UIShare = ParsedShare & { isHolder?: boolean };
 
     elements.step1Card?.classList.remove('collapsed');
     elements.step2Card?.classList.remove('collapsed');
+  }
+
+  function handleTlockError(_err: unknown): void {
+    const actions: ToastAction[] = [];
+
+    if (tlockContainerData) {
+      actions.push({
+        id: 'download-tlock',
+        label: t('tlock_download_archive'),
+        primary: true,
+        onClick: () => downloadTlockContainer(),
+      });
+    }
+    actions.push({
+      id: 'retry',
+      label: t('action_try_again'),
+      primary: !tlockContainerData,
+      onClick: () => startRecovery(),
+    });
+
+    toast.error(
+      t('tlock_error_title'),
+      t('tlock_error_message'),
+      t('tlock_error_guidance'),
+      actions,
+    );
+    setStatus(t('tlock_error_status'), 'error');
+
+    state.recovering = false;
+    if (elements.recoverBtn) elements.recoverBtn.disabled = false;
+    elements.step1Card?.classList.remove('collapsed');
+    elements.step2Card?.classList.remove('collapsed');
+  }
+
+  function downloadTlockContainer(): void {
+    if (!tlockContainerData) return;
+    const blob = new Blob([tlockContainerData as BlobPart], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'MANIFEST.tlock.zip';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function setProgress(percent: number): void {

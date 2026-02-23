@@ -1271,6 +1271,31 @@ func TestTlockFullWorkflow(t *testing.T) {
 	}
 }
 
+// TestTlockFutureRoundCannotDecrypt encrypts to a far-future drand round and
+// confirms decryption fails with ErrTooEarly.
+// Gated by REMEMORY_TEST_TLOCK=1 because it requires internet access (drand network).
+func TestTlockFutureRoundCannotDecrypt(t *testing.T) {
+	if os.Getenv("REMEMORY_TEST_TLOCK") != "1" {
+		t.Skip("set REMEMORY_TEST_TLOCK=1 to run tlock integration tests (requires internet)")
+	}
+
+	futureRound := core.RoundForTime(time.Now().Add(365 * 24 * time.Hour))
+
+	var encrypted bytes.Buffer
+	if err := core.TlockEncrypt(&encrypted, strings.NewReader("not yet"), futureRound); err != nil {
+		t.Fatalf("tlock encrypt: %v", err)
+	}
+
+	var decrypted bytes.Buffer
+	err := core.TlockDecrypt(&decrypted, bytes.NewReader(encrypted.Bytes()))
+	if err == nil {
+		t.Fatal("tlock decrypt should have failed for a future round")
+	}
+	if !core.IsTlockTooEarly(err) {
+		t.Errorf("expected tlock.ErrTooEarly, got: %v", err)
+	}
+}
+
 // TestTlockManifestWithoutTlock verifies that regular archives (no tlock container)
 // are not detected as tlock.
 func TestTlockManifestWithoutTlock(t *testing.T) {

@@ -92,5 +92,10 @@
   "tlock_waiting_message": "Abre em {0}. Aguarde, ou volte depois.",
   "tlock_waiting_message_relative": "Abre {0}. Quase lá.",
   "tlock_learn_more": "O que é isto?",
-  "tlock_no_support": "Este arquivo tem um bloqueio por data. Use o recover.html do seu pacote para abri-lo."
+  "tlock_no_support": "Este arquivo tem um bloqueio por data. Use o recover.html do seu pacote para abri-lo.",
+  "tlock_error_title": "Falha na verificação do bloqueio por data",
+  "tlock_error_message": "Suas partes funcionaram, mas o bloqueio por data não pôde ser verificado. Geralmente isso significa que a requisição de rede foi bloqueada.",
+  "tlock_error_guidance": "Tente um navegador diferente (o Chrome funciona melhor), ou baixe o arquivo bloqueado e use a ferramenta CLI.",
+  "tlock_error_status": "Falha na verificação do bloqueio por data. Suas partes estão corretas — tente um navegador diferente.",
+  "tlock_download_archive": "Baixar arquivo bloqueado"
 }

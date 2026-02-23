@@ -92,5 +92,10 @@
   "tlock_waiting_message": "S'ouvre le {0}. Patientez, ou revenez plus tard.",
   "tlock_waiting_message_relative": "S'ouvre {0}. Presque prêt.",
   "tlock_learn_more": "Qu'est-ce que c'est ?",
-  "tlock_no_support": "Cette archive est verrouillée dans le temps. Utilisez le recover.html de votre enveloppe pour l'ouvrir."
+  "tlock_no_support": "Cette archive est verrouillée dans le temps. Utilisez le recover.html de votre enveloppe pour l'ouvrir.",
+  "tlock_error_title": "Échec de la vérification du verrouillage temporel",
+  "tlock_error_message": "Vos parts ont fonctionné, mais le verrouillage temporel n'a pas pu être vérifié. Cela signifie généralement que la requête réseau a été bloquée.",
+  "tlock_error_guidance": "Essayez un autre navigateur (Chrome fonctionne le mieux), ou téléchargez l'archive verrouillée et utilisez l'outil CLI.",
+  "tlock_error_status": "Échec de la vérification du verrouillage temporel. Vos parts sont correctes — essayez un autre navigateur.",
+  "tlock_download_archive": "Télécharger l'archive verrouillée"
 }

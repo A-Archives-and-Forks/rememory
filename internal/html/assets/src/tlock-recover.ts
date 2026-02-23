@@ -74,11 +74,10 @@ function waitAndDecrypt(
     }
 
     // Time passed — decrypt
+    const ct = pendingCiphertext;
     stopWaiting();
     try {
-      const archive = await decrypt(pendingCiphertext);
-      pendingCiphertext = null;
-      pendingMeta = null;
+      const archive = await decrypt(ct);
       onReady(archive);
     } catch (err) {
       onError(err instanceof Error ? err : new Error(String(err)));
