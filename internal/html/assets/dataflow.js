@@ -179,8 +179,8 @@
       this.loopCount++;
 
       if (this.hasDistributed) {
-        // After first distribution, only loop the recovery phase
-        this.phase = 'recover';
+        // After first distribution, show the wait then loop the recovery phase
+        this.phase = 'wait';
       } else {
         // First time: start from beginning
         this.phase = 'split';
@@ -206,7 +206,7 @@
 
       const SPLIT_DURATION = 3000;
       const DISTRIBUTE_DURATION = 2000;
-      const WAIT_DURATION = this.hasDistributed ? 800 : 1500; // Shorter wait on loops
+      const WAIT_DURATION = 2500;
       const RECOVER_DURATION = 2500;
       const COMBINE_DURATION = 1500;
       const COMPLETE_DURATION = 2500;
