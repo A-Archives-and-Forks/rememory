@@ -36,7 +36,7 @@ func init() {
 	serveCmd.Flags().String("host", "127.0.0.1", "Host to bind to")
 	serveCmd.Flags().StringP("data", "d", "./rememory-data", "Data directory for storing bundles and config")
 	serveCmd.Flags().String("max-manifest-size", "50MB", "Maximum MANIFEST.age size (e.g. 50MB, 1GB)")
-	serveCmd.Flags().Bool("no-timelock", false, "Omit time-lock support")
+	serveCmd.Flags().Bool("no-timelock", false, "Omit time-lock support from the recovery page")
 	rootCmd.AddCommand(serveCmd)
 }
 

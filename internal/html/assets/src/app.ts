@@ -1,4 +1,8 @@
 // ReMemory Recovery Tool - Browser-based recovery using native JavaScript crypto
+//
+// Built with esbuild --define:__TLOCK__=true|false to produce two variants:
+//   app.js       (__TLOCK__=false) — offline recovery, no tlock/drand code
+//   app-tlock.js (__TLOCK__=true)  — recovery with tlock (HTTP to drand)
 
 // BarcodeDetector polyfill - provides QR scanning in browsers without native support
 import { registerPolyfill } from './barcode-detector';
@@ -31,6 +35,11 @@ import {
   type ParsedShare,
 } from './crypto';
 
+// Compile-time flag: esbuild replaces this with true or false.
+// When false, tlock code is eliminated entirely from the bundle (app.js).
+// When true, tlock recovery code is included (app-tlock.js).
+declare const __TLOCK__: boolean;
+
 // Translation function (defined in HTML)
 declare const t: TranslationFunction;
 
@@ -42,6 +51,24 @@ type UIShare = ParsedShare & { isHolder?: boolean };
 
   // Import shared utilities
   const { escapeHtml, formatSize, toast, showInlineError, clearInlineError } = window.rememoryUtils;
+
+  // Tlock recovery functions — conditionally required so esbuild eliminates
+  // tlock-js + drand-client HTTP code from the offline variant (app.js).
+  // With --define:__TLOCK__=false --minify-syntax, the ternary evaluates to null
+  // and esbuild never follows the require.
+  const tlockRecover: {
+    decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
+    waitAndDecrypt(
+      meta: import('./types').TlockContainerMeta,
+      ciphertext: Uint8Array,
+      onTick: (unlockDate: Date) => void,
+      onReady: (archive: Uint8Array) => void,
+      onError: (err: Error) => void,
+    ): void;
+    stopWaiting(): void;
+    formatUnlockDate(date: Date, t: TranslationFunction): { text: string; relative: boolean };
+    formatTimelockDate(date: Date): string;
+  } | null = __TLOCK__ ? require('./tlock-recover') : null;
 
   // Wrap email addresses in mailto: links. Input must already be HTML-escaped.
   const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
@@ -1099,12 +1126,10 @@ type UIShare = ParsedShare & { isHolder?: boolean };
   }
 
   function showTlockWaiting(unlockDate: Date): void {
-    if (!elements.tlockWaiting) return;
+    if (!__TLOCK__ || !elements.tlockWaiting || !tlockRecover) return;
 
     if (elements.tlockWaitingDate) {
-      const fmt = window.rememoryTlock?.formatUnlockDate
-        ? window.rememoryTlock.formatUnlockDate(unlockDate, t)
-        : { text: unlockDate.toLocaleDateString(), relative: false };
+      const fmt = tlockRecover.formatUnlockDate(unlockDate, t);
       const boldDate = `<strong>${fmt.text}</strong>`;
       elements.tlockWaitingDate.innerHTML = fmt.relative
         ? t('tlock_waiting_message_relative', boldDate)
@@ -1117,7 +1142,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
   }
 
   function hideTlockWaiting(): void {
-    window.rememoryTlock?.stopWaiting?.();
+    if (__TLOCK__) tlockRecover?.stopWaiting();
     elements.tlockWaiting?.classList.add('hidden');
     if (elements.recoverBtn && !state.recoveryComplete) {
       elements.recoverBtn.classList.remove('hidden');
@@ -1165,7 +1190,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
 
       // Check for tlock container (post-decryption)
       if (isTlockContainer(archive)) {
-        if (!window.rememoryTlock?.decrypt) {
+        if (!__TLOCK__ || !tlockRecover) {
           toast.error(t('error_title'), t('tlock_no_support'));
           throw new Error('Time-lock decryption not available');
         }
@@ -1179,7 +1204,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
         if (unlockDate > new Date()) {
           // Time lock hasn't passed — show waiting UI and start polling
           showTlockWaiting(unlockDate);
-          window.rememoryTlock.waitAndDecrypt!(
+          tlockRecover.waitAndDecrypt(
             meta,
             ciphertext,
             (date) => showTlockWaiting(date),
@@ -1210,7 +1235,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
         // Time lock passed — decrypt now
         setStatus(t('tlock_decrypting'));
         try {
-          archive = await window.rememoryTlock.decrypt(ciphertext);
+          archive = await tlockRecover.decrypt(ciphertext);
           tlockContainerData = null;
         } catch (tlockErr) {
           handleTlockError(tlockErr);

@@ -119,9 +119,6 @@ func GenerateRecoverHTML(version, githubURL string, personalization *Personaliza
 	// Embed styles
 	html = strings.Replace(html, "{{STYLES}}", stylesCSS, 1)
 
-	// Embed shared.js + app.js (unified — no selfhosted variant needed)
-	html = strings.Replace(html, "{{APP_JS}}", sharedJS+"\n"+appJS, 1)
-
 	// Parse options
 	var selfhosted, staticHosted bool
 	var selfhostedConfig *SelfhostedConfig
@@ -144,11 +141,17 @@ func GenerateRecoverHTML(version, githubURL string, personalization *Personaliza
 		html = strings.Replace(html, "{{SELFHOSTED_CONFIG}}", "null", 1)
 	}
 
-	// Include tlock.js when needed:
-	// - Generic/standalone recover.html (personalization == nil): always include so
-	//   GitHub Pages can handle tlock manifests
-	// - Personalized tlock bundle: include for time-lock decryption
-	// - Personalized non-tlock bundle: omit to keep size small
+	// Two-variant model for recover.html, organized by network posture:
+	//
+	//   app.js       (offline)  — zero HTTP calls, no tlock/drand code
+	//   app-tlock.js (network)  — tlock decryption via HTTP to drand relays
+	//
+	// Which variant to use:
+	//   - Generic/standalone (personalization == nil): use app-tlock.js so
+	//     GitHub Pages and selfhosted can handle any manifest
+	//   - Personalized tlock bundle (TlockEnabled): use app-tlock.js
+	//   - Personalized non-tlock bundle: use app.js (smaller, offline)
+	//   - --no-timelock flag: force app.js even for generic
 	var noTlock bool
 	if len(opts) > 0 {
 		noTlock = opts[0].NoTlock
@@ -159,10 +162,18 @@ func GenerateRecoverHTML(version, githubURL string, personalization *Personaliza
 		noTlock = false
 	}
 	includeTlock := !noTlock && (personalization == nil || personalization.TlockEnabled)
+
+	// Select the appropriate app JS variant
+	selectedAppJS := appJS
+	if includeTlock {
+		selectedAppJS = appTlockJS
+	}
+	html = strings.Replace(html, "{{APP_JS}}", sharedJS+"\n"+selectedAppJS, 1)
+
+	// Inject drand config and tlock waiting UI only for the tlock variant
 	var cspConnectSrc string
 	if includeTlock {
-		html = strings.Replace(html, "{{TLOCK_JS}}",
-			drandConfigScript()+`<script nonce="{{CSP_NONCE}}">`+tlockRecoverJS+`</script>`, 1)
+		html = strings.Replace(html, "{{TLOCK_JS}}", drandConfigScript(), 1)
 		cspConnectSrc = drandCSPConnectSrc()
 		html = strings.Replace(html, "{{TLOCK_WAITING_HTML}}", tlockWaitingHTML, 1)
 	} else {

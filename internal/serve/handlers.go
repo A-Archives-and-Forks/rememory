@@ -39,7 +39,6 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := html.GenerateMakerHTML(createWASM, s.version, s.githubURL, html.MakerHTMLOptions{
-		NoTlock:    s.noTlock,
 		Selfhosted: true,
 		SelfhostedConfig: &html.SelfhostedConfig{
 			MaxManifestSize: s.maxManifestSize,

@@ -13,8 +13,15 @@ var recoverHTMLTemplate string
 //go:embed assets/shared.js
 var sharedJS string
 
+// Recovery JS: two variants built from app.ts with different __TLOCK__ defines.
+// app.js (__TLOCK__=false) — offline recovery, no tlock/drand code.
+// app-tlock.js (__TLOCK__=true) — recovery with tlock HTTP decryption via drand.
+
 //go:embed assets/app.js
 var appJS string
+
+//go:embed assets/app-tlock.js
+var appTlockJS string
 
 //go:embed assets/styles.css
 var stylesCSS string
@@ -36,14 +43,10 @@ var createAppJS string
 //go:embed assets/create-app-selfhosted.js
 var createAppSelfhostedJS string
 
-// Tlock JavaScript (time-lock encryption/decryption using drand)
-// Split into creation (maker.html) and recovery (recover.html) bundles.
-
-//go:embed assets/tlock-create.js
-var tlockCreateJS string
-
-//go:embed assets/tlock-recover.js
-var tlockRecoverJS string
+// Note: tlock-create.js is gone — encryption is inline in create-app.js
+// using the offline drand client. tlock-recover.ts still exists as a module
+// but has no standalone output file — it's imported by app.ts behind
+// __TLOCK__ guards, so it ends up in app-tlock.js only.
 
 // Static page templates (no WASM needed)
 

@@ -144,8 +144,8 @@ The build pipeline is: **TypeScript (esbuild) -> WASM (for maker.html) -> Go bin
 
 ### WASM and Native JS
 
-- **`recover.html`** uses **native JavaScript crypto** (no WASM). Dependencies like `age-encryption`, `shamir-secret-sharing`, `fflate`, and `tarparser` are bundled via esbuild into `app.js`. This keeps bundles small (~170KB) and avoids WASM compatibility issues. For tlock-enabled bundles, `tlock.js` (bundled from `tlock-js` + `drand-client`) is also included.
-- **`maker.html`** uses **WASM** (`create.wasm`) for bundle creation. Built with `-tags create` from `internal/wasm/`. Entry point: `main_create.go`. Includes `tlock.js` by default for time-lock support (opt-out with `--no-timelock`).
+- **`recover.html`** uses **native JavaScript crypto** (no WASM). Dependencies like `age-encryption`, `shamir-secret-sharing`, `fflate`, and `tarparser` are bundled via esbuild into `app.js`. Two JS variants are built from `app.ts` using an esbuild `--define` flag: `app.js` (`__TLOCK__=false`, offline, no tlock/drand code) and `app-tlock.js` (`__TLOCK__=true`, includes tlock decryption via HTTP to drand). Which variant is used depends on the network posture: personalized non-tlock bundles get `app.js` (smaller, offline); generic/tlock/selfhosted variants get `app-tlock.js`.
+- **`maker.html`** uses **WASM** (`create.wasm`) for bundle creation. Built with `-tags create` from `internal/wasm/`. Entry point: `main_create.go`. Tlock encryption is always included and is offline — it uses an embedded drand chain config via `createOfflineClient()`, with zero HTTP calls. The `--no-timelock` flag only affects `recover.html`.
   `GOOS=js GOARCH=wasm go build -tags create -o internal/html/assets/create.wasm ./internal/wasm`
 
 The WASM module exposes Go functions to JavaScript via `syscall/js` (registered in `main_create.go`), with the JS bridge in `js_wrappers.go`.
@@ -158,7 +158,7 @@ The WASM module exposes Go functions to JavaScript via `syscall/js` (registered 
 
 For `maker.html`, WASM is gzip-compressed and base64-encoded inline. **Circular dependency avoidance:** `create.wasm` itself embeds the html package (for bundle creation), so `create.wasm` cannot be embedded via `//go:embed` in the html package. Instead, the CLI binary loads `create.wasm` at init time and injects it via `html.SetCreateWASMBytes()`.
 
-For `recover.html`, no WASM is needed — all crypto is native JavaScript bundled in `app.js`.
+For `recover.html`, no WASM is needed — all crypto is native JavaScript bundled in `app.js` or `app-tlock.js`.
 
 ### Bundle generation
 
@@ -184,9 +184,10 @@ When `MANIFEST.age` is 10 MB or less, it is also base64-encoded and embedded in 
 
 Frontend code lives in `internal/html/assets/src/`. Compiled via esbuild to IIFE bundles (not ES modules):
 - `shared.ts` — Common utilities (toast notifications, formatting)
-- `app.ts` — Recovery UI (`recover.html`), uses native JS crypto from `crypto/` subdirectory
-- `create-app.ts` — Bundle creation UI (`maker.html`), uses WASM
-- `tlock.ts` — Tlock time-lock encryption/decryption wrapper (bundled as `tlock.js` IIFE)
+- `app.ts` — Recovery UI (`recover.html`), built with `__TLOCK__=true|false` into two variants: `app.js` (offline) and `app-tlock.js` (tlock via drand HTTP)
+- `create-app.ts` — Bundle creation UI (`maker.html`), uses WASM. Tlock encryption is inline using the offline drand client (no separate file)
+- `tlock-recover.ts` — Tlock decryption functions (imported by `app.ts` behind `__TLOCK__` guards, bundled into `app-tlock.js` only)
+- `drand.ts` — Drand chain config and offline client (no HTTP imports; `tlock-recover.ts` builds its own HTTP client)
 
 The `crypto/` subdirectory contains the native JavaScript crypto implementations for recovery: Shamir combining, age decryption, tar.gz extraction, share parsing, BIP39 word encoding. These replace the WASM module that was previously used.
 

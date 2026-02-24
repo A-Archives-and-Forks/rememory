@@ -41,7 +41,7 @@ var htmlLang string
 
 func init() {
 	htmlCmd.Flags().StringVarP(&htmlOutputFile, "output", "o", "", "Output file path (default: stdout)")
-	htmlCmd.Flags().Bool("no-timelock", false, "Omit time-lock support")
+	htmlCmd.Flags().Bool("no-timelock", false, "Omit time-lock support from recover.html")
 	htmlCmd.Flags().StringVar(&htmlLang, "lang", "", "Language code for docs (e.g. es, de)")
 	rootCmd.AddCommand(htmlCmd)
 }
@@ -76,12 +76,12 @@ func runHTML(cmd *cobra.Command, args []string) error {
 	case "create":
 		// Generate maker.html (bundle creation tool)
 		// Uses create.wasm which self-contains recover.wasm for generating bundles
+		// Tlock encryption is always included (offline — no HTTP calls)
 		createWASM := html.GetCreateWASMBytes()
 		if len(createWASM) == 0 {
 			return fmt.Errorf("create.wasm not embedded - rebuild with 'make build'")
 		}
-		noTlock, _ := cmd.Flags().GetBool("no-timelock")
-		content = html.GenerateMakerHTML(createWASM, version, githubURL, html.MakerHTMLOptions{NoTlock: noTlock})
+		content = html.GenerateMakerHTML(createWASM, version, githubURL, html.MakerHTMLOptions{})
 
 	case "site":
 		return runHTMLSite(cmd, githubURL)
@@ -129,7 +129,7 @@ func runHTMLSite(cmd *cobra.Command, githubURL string) error {
 
 	files := []file{
 		{"index.html", html.GenerateIndexHTML(version, githubURL)},
-		{"maker.html", html.GenerateMakerHTML(createWASM, version, githubURL, html.MakerHTMLOptions{NoTlock: noTlock})},
+		{"maker.html", html.GenerateMakerHTML(createWASM, version, githubURL, html.MakerHTMLOptions{})},
 		{"docs.html", html.GenerateDocsHTML(version, githubURL, "en")},
 		{"recover.html", html.GenerateRecoverHTML(version, githubURL, nil, html.RecoverHTMLOptions{NoTlock: noTlock})},
 	}

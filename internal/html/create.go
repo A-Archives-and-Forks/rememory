@@ -44,7 +44,6 @@ const tlockPanelHTML = `<!-- Advanced: time lock (shown when Advanced tab is act
 
 // MakerHTMLOptions holds optional parameters for GenerateMakerHTML.
 type MakerHTMLOptions struct {
-	NoTlock          bool              // Omit tlock-js from the maker (disables time-lock UI)
 	Selfhosted       bool              // Use selfhosted JS variant with server integration
 	SelfhostedConfig *SelfhostedConfig // Config injected into the HTML for selfhosted mode
 }
@@ -92,22 +91,15 @@ func GenerateMakerHTML(createWASMBytes []byte, version, githubURL string, opts M
 		html = strings.Replace(html, "{{SELFHOSTED_CONFIG}}", "null", 1)
 	}
 
-	// Include tlock-create.js and tlock UI unless explicitly disabled
-	noTlock := opts.NoTlock
-	cspConnectSrc := "blob:"
-	if !noTlock {
-		html = strings.Replace(html, "{{TLOCK_JS}}",
-			drandConfigScript()+`<script nonce="{{CSP_NONCE}}">`+tlockCreateJS+`</script>`, 1)
-		cspConnectSrc = drandCSPConnectSrc()
-		html = strings.Replace(html, "{{TLOCK_TABS_HTML}}", tlockTabsHTML, 1)
-		html = strings.Replace(html, "{{TLOCK_PANEL_HTML}}", tlockPanelHTML, 1)
-	} else {
-		html = strings.Replace(html, "{{TLOCK_JS}}", "", 1)
-		html = strings.Replace(html, "{{TLOCK_TABS_HTML}}", "", 1)
-		html = strings.Replace(html, "{{TLOCK_PANEL_HTML}}", "", 1)
-	}
+	// Tlock encryption is always included in maker.html — it's offline (no HTTP calls).
+	// {{TLOCK_JS}} injects only the drand config script; the encryption code is
+	// bundled directly in create-app.js via the offline drand client.
+	html = strings.Replace(html, "{{TLOCK_JS}}", drandConfigScript(), 1)
+	html = strings.Replace(html, "{{TLOCK_TABS_HTML}}", tlockTabsHTML, 1)
+	html = strings.Replace(html, "{{TLOCK_PANEL_HTML}}", tlockPanelHTML, 1)
 
-	// Selfhosted mode needs 'self' for fetch to /api/*
+	// CSP: blob: for WASM loading. No drand endpoints needed — encryption is offline.
+	cspConnectSrc := "blob:"
 	if opts.Selfhosted {
 		cspConnectSrc += " 'self'"
 	}

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { ChildProcess, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -26,6 +26,7 @@ async function getAvailablePort(): Promise<number> {
 }
 
 test.describe('Static Pages', () => {
+  test.use({ allowedHosts: ['127.0.0.1'] });
   let projectDir: string;
   let pagesDir: string;
   let bundlesDir: string;

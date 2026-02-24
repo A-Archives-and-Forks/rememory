@@ -1,4 +1,6 @@
 // ReMemory Bundle Creator - Browser-based bundle creation using Go WASM
+// Tlock encryption is inline and offline — it uses the embedded drand chain
+// config to encrypt for a future round without any HTTP calls.
 
 import type {
   CreationState,
@@ -6,6 +8,15 @@ import type {
   GeneratedBundle,
   TranslationFunction,
 } from './types';
+
+// Import from tlock-js submodules (not the barrel) to avoid pulling in
+// drand-client HTTP code. The barrel re-exports HttpCachingChain/HttpChainClient
+// which would bloat the bundle with unused HTTP client code.
+import { createTimelockEncrypter } from 'tlock-js/drand/timelock-encrypter';
+import { encryptAge } from 'tlock-js/age/age-encrypt-decrypt';
+import { encodeArmor } from 'tlock-js/age/armor';
+import { Buffer } from 'buffer';
+import { createOfflineClient, QUICKNET_GENESIS, QUICKNET_PERIOD } from './drand';
 
 // Translation function and language state (defined in HTML)
 declare const t: TranslationFunction;
@@ -647,12 +658,76 @@ declare const __SELFHOSTED__: boolean;
 
   // ============================================
   // Time Lock (Advanced Options)
+  //
+  // Tlock encryption is inline — no separate tlock-create.js bundle.
+  // Uses createOfflineClient() which reads only the embedded drand config,
+  // so encryption makes zero HTTP calls.
   // ============================================
 
-  function setupTimelock(): void {
-    // Only show advanced options if tlock-js is available
-    if (!window.rememoryTlock) return;
+  // Compute the round number for a target date
+  function roundForTime(target: Date): number {
+    const elapsed = (target.getTime() / 1000) - QUICKNET_GENESIS;
+    if (elapsed <= 0) return 1;
+    return Math.ceil(elapsed / QUICKNET_PERIOD) + 1;
+  }
 
+  // Compute the time at which a round will be emitted
+  function timeForRound(round: number): Date {
+    if (round <= 1) return new Date(QUICKNET_GENESIS * 1000);
+    const timestamp = QUICKNET_GENESIS + (round - 1) * QUICKNET_PERIOD;
+    return new Date(timestamp * 1000);
+  }
+
+  // Encrypt plaintext for a specific round number (offline — no HTTP).
+  // Reimplements timelockEncrypt using submodule imports to avoid the
+  // tlock-js barrel which re-exports HTTP client code.
+  async function tlockEncrypt(plaintext: Uint8Array, roundNumber: number): Promise<Uint8Array> {
+    const client = createOfflineClient();
+    const encrypter = createTimelockEncrypter(client, roundNumber);
+    const agePayload = await encryptAge(Buffer.from(plaintext), encrypter);
+    const armored = encodeArmor(agePayload);
+    return new TextEncoder().encode(armored);
+  }
+
+  // Encrypt plaintext for a target date, returning everything the caller needs.
+  // Reads roundForTime/timeForRound from window.rememoryTlock so E2E tests can
+  // override them (e.g. to target a near-future round for faster test cycles).
+  async function encryptForDate(plaintext: Uint8Array, targetDate: Date): Promise<{
+    ciphertext: Uint8Array;
+    round: number;
+    unlockDate: Date;
+  }> {
+    const tlock = (window as any).rememoryTlock;
+    const round = (tlock?.roundForTime ?? roundForTime)(targetDate);
+    const ciphertext = await tlockEncrypt(plaintext, round);
+    const unlockDate = (tlock?.timeForRound ?? timeForRound)(round);
+    return { ciphertext, round, unlockDate };
+  }
+
+  // Compute a future date from a duration value and unit (e.g. 5, 'min' → 5 minutes from now).
+  function computeTimelockDate(value: number, unit: string): Date | null {
+    if (value <= 0) return null;
+    const now = new Date();
+    switch (unit) {
+      case 'min': return new Date(now.getTime() + value * 60000);
+      case 'h': return new Date(now.getTime() + value * 3600000);
+      case 'd': return new Date(now.getTime() + value * 86400000);
+      case 'w': return new Date(now.getTime() + value * 7 * 86400000);
+      case 'm': { const d = new Date(now); d.setMonth(d.getMonth() + value); return d; }
+      case 'y': { const d = new Date(now); d.setFullYear(d.getFullYear() + value); return d; }
+      default: return null;
+    }
+  }
+
+  // Format a tlock unlock date for display. Shows time if within 24 hours, date-only otherwise.
+  function formatTimelockDate(date: Date): string {
+    const hoursUntil = (date.getTime() - Date.now()) / 3600000;
+    return (hoursUntil > 0 && hoursUntil < 24)
+      ? date.toLocaleString()
+      : date.toLocaleDateString();
+  }
+
+  function setupTimelock(): void {
     const advancedTabs = document.getElementById('advanced-options');
     advancedTabs?.classList.remove('hidden');
 
@@ -704,11 +779,20 @@ declare const __SELFHOSTED__: boolean;
         if (datePreview) datePreview.textContent = '';
         return;
       }
-      const target = window.rememoryTlock?.computeTimelockDate?.(state.tlockValue, state.tlockUnit);
+      const target = computeTimelockDate(state.tlockValue, state.tlockUnit);
       if (target) {
-        datePreview.textContent = t('timelock_preview', window.rememoryTlock!.formatTimelockDate(target));
+        datePreview.textContent = t('timelock_preview', formatTimelockDate(target));
       }
     }
+
+    // Expose tlock functions on window for E2E test patching (roundForTime override)
+    (window as any).rememoryTlock = {
+      roundForTime,
+      timeForRound,
+      computeTimelockDate,
+      formatTimelockDate,
+      encryptForDate,
+    };
   }
 
   // Maximum total file size: selfhosted uses the server's configured limit,
@@ -886,14 +970,14 @@ declare const __SELFHOSTED__: boolean;
       let tlockRound: number | undefined;
       let tlockUnlock: string | undefined;
 
-      if (state.tlockEnabled && window.rememoryTlock) {
+      if (state.tlockEnabled) {
         setProgress(25);
         setStatus(t('timelock_encrypting'));
         await sleep(100);
 
-        const targetDate = window.rememoryTlock.computeTimelockDate!(state.tlockValue, state.tlockUnit);
+        const targetDate = computeTimelockDate(state.tlockValue, state.tlockUnit);
         if (!targetDate) throw new Error('Invalid time lock date');
-        const result = await window.rememoryTlock.encryptForDate!(archiveData, targetDate);
+        const result = await encryptForDate(archiveData, targetDate);
         archiveData = result.ciphertext;
         tlockRound = result.round;
         tlockUnlock = result.unlockDate.toISOString();

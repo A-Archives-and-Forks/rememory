@@ -94,35 +94,19 @@ export interface TlockContainerMeta {
   chain: string;
 }
 
-// RememoryTlock is the interface exposed on window.rememoryTlock.
-// tlock-create.ts and tlock-recover.ts each expose a subset; both are valid.
+// RememoryTlock: creation-side functions exposed on window.rememoryTlock by
+// create-app.ts for E2E test patching (e.g. overriding roundForTime).
+// Recovery-side tlock code is now imported directly via __TLOCK__ guards in app.ts.
 export interface RememoryTlock {
-  // Creation-side (tlock-create.ts)
-  encrypt?(plaintext: Uint8Array, roundNumber: number): Promise<Uint8Array>;
-  encryptForDate?(plaintext: Uint8Array, targetDate: Date): Promise<{
+  roundForTime(target: Date): number;
+  timeForRound(round: number): Date;
+  computeTimelockDate(value: number, unit: string): Date | null;
+  formatTimelockDate(date: Date): string;
+  encryptForDate(plaintext: Uint8Array, targetDate: Date): Promise<{
     ciphertext: Uint8Array;
     round: number;
     unlockDate: Date;
   }>;
-  computeTimelockDate?(value: number, unit: string): Date | null;
-  roundForTime?(target: Date): number;
-  timeForRound?(round: number): Date;
-
-  // Recovery-side (tlock-recover.ts)
-  decrypt?(ciphertext: Uint8Array): Promise<Uint8Array>;
-  isRoundAvailable?(roundNumber: number): Promise<boolean>;
-  waitAndDecrypt?(
-    meta: TlockContainerMeta,
-    ciphertext: Uint8Array,
-    onTick: (unlockDate: Date) => void,
-    onReady: (archive: Uint8Array) => void,
-    onError: (err: Error) => void,
-  ): void;
-  stopWaiting?(): void;
-  formatUnlockDate?(date: Date, t: TranslationFunction): { text: string; relative: boolean };
-
-  // Shared
-  formatTimelockDate(date: Date): string;
 }
 
 // ============================================

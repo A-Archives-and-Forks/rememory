@@ -139,3 +139,168 @@ func hasAllowedPrefix(url string, allowed []string) bool {
 	}
 	return false
 }
+
+// extractCSP pulls the CSP connect-src value from an HTML document.
+func extractCSP(html string) string {
+	cspRe := regexp.MustCompile(`content="[^"]*connect-src\s+([^;"]*)[;"]`)
+	m := cspRe.FindStringSubmatch(html)
+	if len(m) > 1 {
+		return m[1]
+	}
+	return ""
+}
+
+// ============================================================
+// Network-posture tests
+//
+// These tests enforce the security-critical invariant that each
+// HTML variant makes only the HTTP calls its network posture
+// allows. They prevent regressions where network code leaks
+// into offline bundles.
+// ============================================================
+
+// TestMakerCSPNoDrandEndpoints verifies that maker.html's CSP does not include
+// drand HTTP endpoints. Tlock encryption in maker.html is offline — it uses the
+// embedded chain config via createOfflineClient(), never HTTP.
+func TestMakerCSPNoDrandEndpoints(t *testing.T) {
+	wasmStub := []byte{0x00, 0x61, 0x73, 0x6d}
+	content := GenerateMakerHTML(wasmStub, "test", "http://test", MakerHTMLOptions{})
+
+	csp := extractCSP(content)
+	if strings.Contains(csp, "api.drand.sh") {
+		t.Errorf("maker.html CSP allows drand endpoints (encryption is offline): %s", csp)
+	}
+	if !strings.Contains(csp, "blob:") {
+		t.Error("maker.html CSP missing blob: (needed for WASM loading)")
+	}
+}
+
+// TestMakerAlwaysIncludesTlock verifies that maker.html always includes the
+// tlock UI and drand config, regardless of options. Tlock encryption is always
+// available because it's offline — no --no-timelock flag applies to it.
+func TestMakerAlwaysIncludesTlock(t *testing.T) {
+	wasmStub := []byte{0x00, 0x61, 0x73, 0x6d}
+	content := GenerateMakerHTML(wasmStub, "test", "http://test", MakerHTMLOptions{})
+
+	if !strings.Contains(content, "DRAND_CONFIG") {
+		t.Error("maker.html should always include DRAND_CONFIG (offline encryption needs chain params)")
+	}
+	if !strings.Contains(content, "advanced-options") {
+		t.Error("maker.html should always include tlock advanced options UI")
+	}
+	if !strings.Contains(content, "timelock-panel") {
+		t.Error("maker.html should always include tlock panel HTML")
+	}
+}
+
+// TestRecoverHTMLUsesCorrectAppVariant verifies that the correct app.js variant
+// is selected based on tlock requirements:
+//   - Generic (no personalization): app-tlock.js (handles any manifest)
+//   - Personalized non-tlock: app.js (offline, smaller)
+//   - Personalized tlock: app-tlock.js (needs HTTP for decryption)
+//   - --no-timelock flag: forces app.js
+func TestRecoverHTMLUsesCorrectAppVariant(t *testing.T) {
+	// Generic recover.html (no personalization, no --no-timelock) should include tlock
+	generic := GenerateRecoverHTML("test", "http://test", nil)
+	if !strings.Contains(generic, "DRAND_CONFIG") {
+		t.Error("generic recover.html should include DRAND_CONFIG (tlock variant)")
+	}
+
+	// No-tlock recover.html should not include tlock code
+	noTlock := GenerateRecoverHTML("test", "http://test", nil, RecoverHTMLOptions{NoTlock: true})
+	if strings.Contains(noTlock, "DRAND_CONFIG") {
+		t.Error("no-tlock recover.html should not include DRAND_CONFIG")
+	}
+
+	// Personalized non-tlock bundle should not include tlock
+	nonTlockPers := GenerateRecoverHTML("test", "http://test", &PersonalizationData{
+		Holder:      "Alice",
+		HolderShare: "test-share",
+		Threshold:   2,
+		Total:       3,
+	})
+	if strings.Contains(nonTlockPers, "DRAND_CONFIG") {
+		t.Error("personalized non-tlock recover.html should not include DRAND_CONFIG")
+	}
+
+	// Personalized tlock bundle should include tlock
+	tlockPers := GenerateRecoverHTML("test", "http://test", &PersonalizationData{
+		Holder:       "Alice",
+		HolderShare:  "test-share",
+		Threshold:    2,
+		Total:        3,
+		TlockEnabled: true,
+	})
+	if !strings.Contains(tlockPers, "DRAND_CONFIG") {
+		t.Error("personalized tlock recover.html should include DRAND_CONFIG")
+	}
+}
+
+// TestRecoverCSPMatchesVariant verifies that the CSP connect-src correctly
+// reflects the network posture: drand endpoints only when tlock is included,
+// blob: only for offline variants.
+func TestRecoverCSPMatchesVariant(t *testing.T) {
+	// Generic (tlock) should allow drand endpoints
+	generic := GenerateRecoverHTML("test", "http://test", nil)
+	genericCSP := extractCSP(generic)
+	if !strings.Contains(genericCSP, "api.drand.sh") {
+		t.Errorf("generic recover.html CSP should allow drand endpoints: %s", genericCSP)
+	}
+
+	// No-tlock should only have blob:
+	noTlock := GenerateRecoverHTML("test", "http://test", nil, RecoverHTMLOptions{NoTlock: true})
+	noTlockCSP := extractCSP(noTlock)
+	if strings.Contains(noTlockCSP, "api.drand.sh") {
+		t.Errorf("no-tlock recover.html CSP should not allow drand endpoints: %s", noTlockCSP)
+	}
+
+	// Selfhosted should include 'self' for manifest fetch
+	selfhosted := GenerateRecoverHTML("test", "http://test", nil, RecoverHTMLOptions{
+		Selfhosted:       true,
+		SelfhostedConfig: &SelfhostedConfig{MaxManifestSize: 50 << 20},
+	})
+	selfhostedCSP := extractCSP(selfhosted)
+	if !strings.Contains(selfhostedCSP, "'self'") {
+		t.Errorf("selfhosted recover.html CSP should include 'self': %s", selfhostedCSP)
+	}
+}
+
+// TestNonTlockRecoverHasNoTlockWaitingUI verifies that the offline
+// recover.html variant doesn't include the tlock waiting UI element.
+// Note: we check for the HTML element, not the bare string — app.js may
+// contain getElementById('tlock-waiting') references that are inert when
+// the element is absent from the DOM.
+func TestNonTlockRecoverHasNoTlockWaitingUI(t *testing.T) {
+	content := GenerateRecoverHTML("test", "http://test", nil, RecoverHTMLOptions{NoTlock: true})
+
+	if strings.Contains(content, `id="tlock-waiting"`) {
+		t.Error("no-tlock recover.html should not contain tlock-waiting UI element")
+	}
+}
+
+// TestTlockRecoverHasTlockWaitingUI verifies that the tlock variant
+// includes the waiting UI for time-locked bundles.
+func TestTlockRecoverHasTlockWaitingUI(t *testing.T) {
+	content := GenerateRecoverHTML("test", "http://test", nil)
+
+	if !strings.Contains(content, `id="tlock-waiting"`) {
+		t.Error("generic recover.html should contain tlock-waiting UI element")
+	}
+}
+
+// TestTlockEnabledBundleOverridesNoTlock verifies that a tlock-enabled
+// personalized bundle always includes tlock support, even if --no-timelock
+// is passed. This prevents data loss where a tlock bundle can't be recovered.
+func TestTlockEnabledBundleOverridesNoTlock(t *testing.T) {
+	content := GenerateRecoverHTML("test", "http://test", &PersonalizationData{
+		Holder:       "Alice",
+		HolderShare:  "test-share",
+		Threshold:    2,
+		Total:        3,
+		TlockEnabled: true,
+	}, RecoverHTMLOptions{NoTlock: true})
+
+	if !strings.Contains(content, "DRAND_CONFIG") {
+		t.Error("tlock-enabled bundle must include DRAND_CONFIG even with --no-timelock")
+	}
+}

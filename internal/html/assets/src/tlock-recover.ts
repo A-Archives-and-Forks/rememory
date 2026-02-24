@@ -1,13 +1,46 @@
 // tlock-recover.ts — Time-lock decryption for drand's League of Entropy.
-// Used by recover.html for time-locked bundle recovery. Bundled as IIFE, exposes window.rememoryTlock.
+// Used by recover.html for time-locked bundle recovery.
+// This module contains the HTTP drand client and decryption functions.
+// In Phase 2 it's imported by app.ts behind __TLOCK__ guards, producing
+// app-tlock.js (with HTTP code) vs app.js (without).
 
 import { timelockDecrypt } from 'tlock-js';
-import { roundTime } from 'drand-client';
-import { createClient } from './drand';
+import { roundTime, HttpCachingChain, HttpChainClient } from 'drand-client';
+import type { ChainClient, ChainOptions } from 'drand-client';
+import { DRAND_CONFIG } from './drand';
 import type { TlockContainerMeta, TranslationFunction } from './types';
 
+// Create an HTTP drand chain client for recovery, trying endpoints in order.
+// This is the only path that makes network calls — needed for timelockDecrypt
+// which must fetch the actual beacon signature for the target round.
+async function createClient(): Promise<ChainClient> {
+  const cfg = DRAND_CONFIG;
+  const options: ChainOptions = {
+    disableBeaconVerification: false,
+    noCache: false,
+    chainVerificationParams: {
+      chainHash: cfg.chainHash,
+      publicKey: cfg.publicKey,
+    },
+  };
+
+  let lastError: Error | undefined;
+  for (const endpoint of cfg.endpoints) {
+    try {
+      const url = `${endpoint}/${cfg.chainHash}`;
+      const chain = new HttpCachingChain(url, options);
+      const client = new HttpChainClient(chain, options);
+      await chain.info();
+      return client;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw new Error(`Could not connect to drand: ${lastError?.message ?? 'all endpoints failed'}`);
+}
+
 // Decrypt tlock ciphertext by fetching the beacon
-async function decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
+export async function decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
   const client = await createClient();
   const armored = new TextDecoder().decode(ciphertext);
   const decrypted = await timelockDecrypt(armored, client);
@@ -15,7 +48,7 @@ async function decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
 }
 
 // Check if a round's beacon is available (time has passed)
-async function isRoundAvailable(roundNumber: number): Promise<boolean> {
+export async function isRoundAvailable(roundNumber: number): Promise<boolean> {
   try {
     const client = await createClient();
     const info = await client.chain().info();
@@ -27,7 +60,7 @@ async function isRoundAvailable(roundNumber: number): Promise<boolean> {
 }
 
 // Format a tlock unlock date for display. Shows time if within 24 hours, date-only otherwise.
-function formatTimelockDate(date: Date): string {
+export function formatTimelockDate(date: Date): string {
   const hoursUntil = (date.getTime() - Date.now()) / 3600000;
   return (hoursUntil > 0 && hoursUntil < 24)
     ? date.toLocaleString()
@@ -35,7 +68,7 @@ function formatTimelockDate(date: Date): string {
 }
 
 // Format an unlock date for the waiting UI, with relative time for near-future dates.
-function formatUnlockDate(date: Date, t: TranslationFunction): { text: string; relative: boolean } {
+export function formatUnlockDate(date: Date, t: TranslationFunction): { text: string; relative: boolean } {
   const minutesUntil = (date.getTime() - Date.now()) / 60000;
   if (minutesUntil > 0 && minutesUntil < 60) {
     const m = Math.ceil(minutesUntil);
@@ -53,7 +86,7 @@ let pendingMeta: TlockContainerMeta | null = null;
 // onTick is called every 5 seconds with the current unlock date (for UI updates).
 // onReady is called with the decrypted archive once the time lock passes.
 // onError is called if decryption fails.
-function waitAndDecrypt(
+export function waitAndDecrypt(
   meta: TlockContainerMeta,
   ciphertext: Uint8Array,
   onTick: (unlockDate: Date) => void,
@@ -92,7 +125,7 @@ function waitAndDecrypt(
 }
 
 // Stop the internal polling timer.
-function stopWaiting(): void {
+export function stopWaiting(): void {
   if (tlockTimer) {
     clearInterval(tlockTimer);
     tlockTimer = null;
@@ -100,15 +133,3 @@ function stopWaiting(): void {
   pendingCiphertext = null;
   pendingMeta = null;
 }
-
-// Expose on window for IIFE bundle
-const api = {
-  decrypt,
-  isRoundAvailable,
-  formatTimelockDate,
-  formatUnlockDate,
-  waitAndDecrypt,
-  stopWaiting,
-};
-
-(window as any).rememoryTlock = api;

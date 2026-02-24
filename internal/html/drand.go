@@ -15,6 +15,9 @@ type drandConfig struct {
 	Period    int      `json:"period"`
 	PublicKey string   `json:"publicKey"`
 	Endpoints []string `json:"endpoints"`
+	SchemeID  string   `json:"schemeID"`
+	GroupHash string   `json:"groupHash"`
+	BeaconID  string   `json:"beaconID"`
 }
 
 // drandConfigScript returns a <script> tag that sets window.DRAND_CONFIG
@@ -27,6 +30,9 @@ func drandConfigScript() string {
 		Period:    int(core.QuicknetPeriod.Seconds()),
 		PublicKey: core.QuicknetPublicKey,
 		Endpoints: core.DrandEndpoints,
+		SchemeID:  core.QuicknetSchemeID,
+		GroupHash: core.QuicknetGroupHash,
+		BeaconID:  core.QuicknetBeaconID,
 	}
 	data, _ := json.Marshal(cfg)
 	return `<script nonce="{{CSP_NONCE}}">window.DRAND_CONFIG=` + string(data) + `;</script>`

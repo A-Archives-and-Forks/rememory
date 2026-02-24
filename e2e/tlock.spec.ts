@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -104,9 +104,39 @@ test.describe('Time-lock: maker.html advanced options', () => {
     const hasTlock = await page.evaluate(() => typeof (window as any).rememoryTlock !== 'undefined');
     expect(hasTlock).toBe(true);
   });
+
+  test('tlock bundle creation works fully offline (no network calls)', async ({ page }, testInfo) => {
+    testInfo.setTimeout(120000);
+
+    // Network is blocked by the offline-by-default fixture.
+    // If tlock encryption tries to hit drand, the test will fail.
+    const creation = new CreationPage(page, htmlPath);
+    await creation.open();
+
+    await creation.setFriend(0, 'Alice', 'alice@test.com');
+    await creation.setFriend(1, 'Bob', 'bob@test.com');
+
+    const testFiles = creation.createTestFiles(tmpDir, 'offline-tlock');
+    await creation.addFiles(testFiles);
+
+    // Enable timelock
+    await page.locator('#advanced-options [data-mode="advanced"]').click();
+    await page.locator('#timelock-checkbox').check();
+
+    // Generate bundles with tlock — must succeed without any network
+    await creation.generate();
+    await creation.expectGenerationComplete();
+
+    await creation.expectBundleCount(2);
+    await creation.expectBundleFor('Alice');
+    await creation.expectBundleFor('Bob');
+  });
 });
 
 test.describe('Time-lock: maker.html bundle creation and recovery with tlock', () => {
+  // Recovery needs drand beacon access — creation is still offline (enforced by group 1).
+  test.use({ allowedHosts: ['api.drand.sh'] });
+
   // This test hits the real drand network — only run under REMEMORY_TEST_TLOCK=1 (make test-tlock)
   test.beforeAll(() => {
     if (process.env.REMEMORY_TEST_TLOCK !== '1') {
@@ -217,43 +247,9 @@ test.describe('Time-lock: maker.html bundle creation and recovery with tlock', (
   });
 });
 
-test.describe('Time-lock: maker.html --no-timelock', () => {
-  let htmlPath: string;
-  let tmpDir: string;
-
-  test.beforeAll(async () => {
-    const bin = getRememoryBin();
-    if (!fs.existsSync(bin)) {
-      test.skip();
-      return;
-    }
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rememory-tlock-notl-e2e-'));
-    htmlPath = generateStandaloneHTML(tmpDir, 'create', ['--no-timelock']);
-  });
-
-  test.afterAll(async () => {
-    if (tmpDir && fs.existsSync(tmpDir)) {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  test('advanced options absent when --no-timelock', async ({ page }) => {
-    const creation = new CreationPage(page, htmlPath);
-    await creation.open();
-
-    // Without tlock-js, advanced options element should not exist at all
-    const advancedSection = page.locator('#advanced-options');
-    await expect(advancedSection).toHaveCount(0);
-  });
-
-  test('rememoryTlock is not available on window', async ({ page }) => {
-    const creation = new CreationPage(page, htmlPath);
-    await creation.open();
-
-    const hasTlock = await page.evaluate(() => typeof (window as any).rememoryTlock !== 'undefined');
-    expect(hasTlock).toBe(false);
-  });
-});
+// Note: the old "maker.html --no-timelock" test group is gone.
+// Tlock encryption is always included in maker.html (offline, no HTTP calls).
+// The --no-timelock flag now only affects recover.html.
 
 test.describe('Time-lock: recover.html tlock detection', () => {
   let genericRecoverPath: string;
@@ -275,12 +271,15 @@ test.describe('Time-lock: recover.html tlock detection', () => {
     }
   });
 
-  test('generic recover.html includes tlock-js', async ({ page }) => {
+  test('generic recover.html includes tlock support (DRAND_CONFIG present)', async ({ page }) => {
     const recovery = new RecoveryPage(page, tmpDir);
     await recovery.openFile(genericRecoverPath);
 
-    const hasTlock = await page.evaluate(() => typeof (window as any).rememoryTlock !== 'undefined');
-    expect(hasTlock).toBe(true);
+    // The tlock variant includes DRAND_CONFIG for tlock decryption.
+    // Recovery-side tlock code is now bundled directly in app-tlock.js
+    // (no separate window.rememoryTlock IIFE).
+    const hasDrandConfig = await page.evaluate(() => typeof (window as any).DRAND_CONFIG !== 'undefined');
+    expect(hasDrandConfig).toBe(true);
   });
 
   test('plain manifest loads without tlock waiting UI', async ({ page }) => {
@@ -318,16 +317,17 @@ test.describe('Time-lock: non-tlock bundles', () => {
     projectDir = createTestProject();
   });
 
-  test('personalized non-tlock recover.html does not include tlock-js', async ({ page }) => {
+  test('personalized non-tlock recover.html does not include tlock code', async ({ page }) => {
     const bundlesDir = path.join(projectDir, 'output', 'bundles');
     const aliceDir = extractBundle(bundlesDir, 'alice');
 
     const recovery = new RecoveryPage(page, aliceDir);
     await recovery.open();
 
-    // Non-tlock personalized bundle should not have tlock-js
-    const hasTlock = await page.evaluate(() => typeof (window as any).rememoryTlock !== 'undefined');
-    expect(hasTlock).toBe(false);
+    // Non-tlock personalized bundle should not have DRAND_CONFIG
+    // (uses app.js, the offline variant with no tlock code)
+    const hasDrandConfig = await page.evaluate(() => typeof (window as any).DRAND_CONFIG !== 'undefined');
+    expect(hasDrandConfig).toBe(false);
   });
 
   test('personalized non-tlock recover.html has no tlock-waiting element', async ({ page }) => {
