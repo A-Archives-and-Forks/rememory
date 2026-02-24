@@ -163,6 +163,7 @@ export interface CreationState {
 export interface SelfhostedConfig {
   maxManifestSize: number;
   hasManifest: boolean;
+  manifestURL?: string;  // URL to fetch manifest from (set by server or static pages)
 }
 
 // ============================================

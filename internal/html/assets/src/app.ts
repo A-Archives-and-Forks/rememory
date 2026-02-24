@@ -34,10 +34,6 @@ import {
 // Translation function (defined in HTML)
 declare const t: TranslationFunction;
 
-// Compile-time flag: esbuild replaces this with true or false.
-// When false, guarded code blocks are eliminated entirely from the output.
-declare const __SELFHOSTED__: boolean;
-
 // Extended share type with UI-specific fields
 type UIShare = ParsedShare & { isHolder?: boolean };
 
@@ -1433,21 +1429,12 @@ type UIShare = ParsedShare & { isHolder?: boolean };
     });
   }
 
-  // ============================================
-  // Selfhosted Server Integration
-  //
-  // Everything inside `if (__SELFHOSTED__)` is eliminated from static builds
-  // by esbuild's dead code removal (--define:__SELFHOSTED__=false --minify-syntax).
-  // ============================================
-
-  if (__SELFHOSTED__) {
-    // Expose public manifest loading API for programmatic use
-    window.rememoryLoadManifest = function(data: Uint8Array, name?: string): void {
-      state.manifest = data;
-      showManifestLoaded(name || 'MANIFEST.age', data.length, 'server');
-      checkRecoverReady();
-    };
-  }
+  // Expose public manifest loading API for programmatic use (used by auto-fetch below)
+  window.rememoryLoadManifest = function(data: Uint8Array, name?: string): void {
+    state.manifest = data;
+    showManifestLoaded(name || 'MANIFEST.age', data.length, 'server');
+    checkRecoverReady();
+  };
 
   // ============================================
   // Global Exports & Startup
@@ -1461,28 +1448,19 @@ type UIShare = ParsedShare & { isHolder?: boolean };
   document.addEventListener('DOMContentLoaded', async () => {
     await init();
 
-    // Auto-fetch manifest from server (selfhosted only)
-    if (__SELFHOSTED__) {
-      const selfhostedConfig = window.SELFHOSTED_CONFIG;
-      if (selfhostedConfig?.hasManifest) {
-        try {
-          // Use ?id= from URL if present, otherwise fetch latest
-          const urlParams = new URLSearchParams(window.location.search);
-          const bundleId = urlParams.get('id');
-          const manifestURL = bundleId
-            ? `/api/bundle/manifest?id=${encodeURIComponent(bundleId)}`
-            : '/api/bundle/manifest';
-
-          const resp = await fetch(manifestURL);
-          if (resp.ok) {
-            const data = new Uint8Array(await resp.arrayBuffer());
-            if (data.length > 0 && !state.manifest) {
-              window.rememoryLoadManifest!(data, 'MANIFEST.age');
-            }
+    // Auto-fetch manifest if a URL is configured (server or static pages)
+    const manifestConfig = window.SELFHOSTED_CONFIG;
+    if (manifestConfig?.manifestURL) {
+      try {
+        const resp = await fetch(manifestConfig.manifestURL);
+        if (resp.ok) {
+          const data = new Uint8Array(await resp.arrayBuffer());
+          if (data.length > 0 && !state.manifest) {
+            window.rememoryLoadManifest!(data, 'MANIFEST.age');
           }
-        } catch {
-          // Server not reachable — user can still load manifest manually
         }
+      } catch {
+        // Not reachable — user can still load manifest manually
       }
     }
   });

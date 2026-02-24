@@ -92,8 +92,9 @@ const tlockWaitingHTML = `<style>
 // RecoverHTMLOptions holds optional parameters for GenerateRecoverHTML.
 type RecoverHTMLOptions struct {
 	NoTlock          bool              // Omit tlock-js even from generic recover.html
-	Selfhosted       bool              // Use selfhosted JS variant with server integration
+	Selfhosted       bool              // Full selfhosted server mode (nav rewrites + config)
 	SelfhostedConfig *SelfhostedConfig // Config injected into the HTML for selfhosted mode
+	StaticHosted     bool              // Static hosting mode (manifest fetch, no nav rewrites)
 }
 
 // GenerateRecoverHTML creates the complete recover.html with all assets embedded.
@@ -118,22 +119,26 @@ func GenerateRecoverHTML(version, githubURL string, personalization *Personaliza
 	// Embed styles
 	html = strings.Replace(html, "{{STYLES}}", stylesCSS, 1)
 
-	// Embed shared.js + app.js (selfhosted variant when applicable)
-	var appScript string
-	var selfhosted bool
+	// Embed shared.js + app.js (unified — no selfhosted variant needed)
+	html = strings.Replace(html, "{{APP_JS}}", sharedJS+"\n"+appJS, 1)
+
+	// Parse options
+	var selfhosted, staticHosted bool
+	var selfhostedConfig *SelfhostedConfig
 	if len(opts) > 0 {
 		selfhosted = opts[0].Selfhosted
+		staticHosted = opts[0].StaticHosted
+		selfhostedConfig = opts[0].SelfhostedConfig
 	}
-	if selfhosted {
-		appScript = appSelfhostedJS
-	} else {
-		appScript = appJS
-	}
-	html = strings.Replace(html, "{{APP_JS}}", sharedJS+"\n"+appScript, 1)
 
-	// Embed selfhosted config (or null)
-	if selfhosted && len(opts) > 0 && opts[0].SelfhostedConfig != nil {
-		configJSON, _ := json.Marshal(opts[0].SelfhostedConfig)
+	// Static hosted mode: auto-create config pointing to ./MANIFEST.age
+	if staticHosted && selfhostedConfig == nil {
+		selfhostedConfig = &SelfhostedConfig{HasManifest: true, ManifestURL: "./MANIFEST.age"}
+	}
+
+	// Embed config (selfhosted, static hosted, or null)
+	if selfhostedConfig != nil {
+		configJSON, _ := json.Marshal(selfhostedConfig)
 		html = strings.Replace(html, "{{SELFHOSTED_CONFIG}}", string(configJSON), 1)
 	} else {
 		html = strings.Replace(html, "{{SELFHOSTED_CONFIG}}", "null", 1)
@@ -165,8 +170,8 @@ func GenerateRecoverHTML(version, githubURL string, personalization *Personaliza
 		cspConnectSrc = "blob:"
 		html = strings.Replace(html, "{{TLOCK_WAITING_HTML}}", "", 1)
 	}
-	// Selfhosted mode needs 'self' for fetch to /api/*
-	if selfhosted {
+	// Selfhosted and static hosted modes need 'self' for manifest fetch
+	if selfhosted || staticHosted {
 		cspConnectSrc += " 'self'"
 	}
 	html = strings.Replace(html, "{{CSP_CONNECT_SRC}}", cspConnectSrc, 1)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/eljojo/rememory/internal/html"
@@ -54,6 +55,12 @@ func (s *Server) handleRecover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Build manifest URL server-side so the frontend doesn't parse query params
+	manifestURL := "/api/bundle/manifest"
+	if id := r.URL.Query().Get("id"); id != "" {
+		manifestURL += "?id=" + url.QueryEscape(id)
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	content := html.GenerateRecoverHTML(s.version, s.githubURL, nil, html.RecoverHTMLOptions{
 		NoTlock:    s.noTlock,
@@ -61,6 +68,7 @@ func (s *Server) handleRecover(w http.ResponseWriter, r *http.Request) {
 		SelfhostedConfig: &html.SelfhostedConfig{
 			MaxManifestSize: s.maxManifestSize,
 			HasManifest:     s.store.HasManifest(),
+			ManifestURL:     manifestURL,
 		},
 	})
 	fmt.Fprint(w, content)

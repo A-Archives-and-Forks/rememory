@@ -24,12 +24,13 @@ func staticPages() map[string]string {
 func TestStaticHTMLHasNoServerCode(t *testing.T) {
 	// These patterns must NOT appear in static output.
 	// Note: SELFHOSTED_CONFIG = null is allowed (it's inert).
-	// We check for the server-interaction code that should be eliminated by esbuild.
+	// rememoryLoadManifest is now always present (unified JS) but is inert when
+	// SELFHOSTED_CONFIG is null — the fetch only activates on manifestURL.
+	// rememoryOnBundlesCreated is still compile-flag-guarded in create-app.ts.
 	forbidden := []string{
 		"/api/bundle",
 		"/api/setup",
 		"rememoryOnBundlesCreated",
-		"rememoryLoadManifest",
 	}
 
 	for name, content := range staticPages() {
@@ -38,6 +39,33 @@ func TestStaticHTMLHasNoServerCode(t *testing.T) {
 				t.Errorf("static %s contains server code: found %q", name, pattern)
 			}
 		}
+	}
+}
+
+// TestStaticHostedRecoverHTML verifies that static-hosted recover.html
+// contains the right config for auto-fetching from a relative MANIFEST.age URL.
+func TestStaticHostedRecoverHTML(t *testing.T) {
+	ghURL := "https://github.com/eljojo/rememory"
+	content := GenerateRecoverHTML("test", ghURL, nil, RecoverHTMLOptions{
+		StaticHosted: true,
+	})
+
+	// Must contain manifestURL pointing to ./MANIFEST.age
+	if !strings.Contains(content, `"manifestURL":"./MANIFEST.age"`) {
+		t.Error("static-hosted recover.html missing manifestURL config")
+	}
+
+	// Must not contain server API endpoints
+	if strings.Contains(content, "/api/bundle") {
+		t.Error("static-hosted recover.html contains /api/bundle")
+	}
+
+	// Nav links should NOT be rewritten (no server routes)
+	if strings.Contains(content, `href="/create"`) {
+		t.Error("static-hosted recover.html has server nav rewrites")
+	}
+	if !strings.Contains(content, `href="index.html"`) {
+		t.Error("static-hosted recover.html missing standard nav links")
 	}
 }
 

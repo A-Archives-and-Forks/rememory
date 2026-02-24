@@ -556,6 +556,124 @@ func verifyBundle(t *testing.T, bundlePath string, friend project.Friend, allFri
 	// Note: recover.html now uses native JavaScript crypto, no WASM needed
 }
 
+// TestPagesGeneration tests that static pages output contains the right files and config.
+func TestPagesGeneration(t *testing.T) {
+	// Setup: create a sealed project (reuses the pattern from TestBundleGeneration)
+	baseDir := t.TempDir()
+	projectDir := filepath.Join(baseDir, "test-pages-project")
+
+	friends := []project.Friend{
+		{Name: "Alice", Contact: "alice@example.com"},
+		{Name: "Bob", Contact: "bob@example.com"},
+		{Name: "Carol", Contact: "carol@example.com"},
+	}
+	threshold := 2
+
+	p, err := project.New(projectDir, "test-pages-project", threshold, friends)
+	if err != nil {
+		t.Fatalf("creating project: %v", err)
+	}
+
+	// Add secret content
+	secretFile := filepath.Join(p.ManifestPath(), "secrets.txt")
+	if err := os.WriteFile(secretFile, []byte("pages test secret"), 0644); err != nil {
+		t.Fatalf("writing secret: %v", err)
+	}
+
+	// Seal the project
+	var archiveBuf bytes.Buffer
+	if _, err := manifest.ArchiveZip(&archiveBuf, p.ManifestPath()); err != nil {
+		t.Fatalf("archiving: %v", err)
+	}
+
+	passphrase, _ := crypto.GeneratePassphrase(crypto.DefaultPassphraseBytes)
+
+	os.MkdirAll(p.OutputPath(), 0755)
+	os.MkdirAll(p.SharesPath(), 0755)
+
+	manifestFile, _ := os.Create(p.ManifestAgePath())
+	core.Encrypt(manifestFile, bytes.NewReader(archiveBuf.Bytes()), passphrase)
+	manifestFile.Close()
+
+	shares, _ := core.Split([]byte(passphrase), len(friends), threshold)
+	shareInfos := make([]project.ShareInfo, len(friends))
+	for i, data := range shares {
+		share := core.NewShare(1, i+1, len(friends), threshold, friends[i].Name, data)
+		sharePath := filepath.Join(p.SharesPath(), share.Filename())
+		os.WriteFile(sharePath, []byte(share.Encode()), 0644)
+		shareInfos[i] = project.ShareInfo{
+			Friend:   friends[i].Name,
+			File:     share.Filename(),
+			Checksum: share.Checksum,
+		}
+	}
+
+	manifestData, _ := os.ReadFile(p.ManifestAgePath())
+	manifestChecksum := core.HashBytes(manifestData)
+
+	p.Sealed = &project.Sealed{
+		At:               time.Now(),
+		ManifestChecksum: manifestChecksum,
+		VerificationHash: core.HashString(passphrase),
+		Shares:           shareInfos,
+	}
+	p.Save()
+
+	// Generate pages output
+	pagesDir := p.PagesPath()
+	if err := os.MkdirAll(pagesDir, 0755); err != nil {
+		t.Fatalf("creating pages dir: %v", err)
+	}
+
+	// Copy MANIFEST.age
+	if err := os.WriteFile(filepath.Join(pagesDir, "MANIFEST.age"), manifestData, 0644); err != nil {
+		t.Fatalf("writing manifest: %v", err)
+	}
+
+	// Generate static-hosted recover.html
+	ghURL := "https://github.com/eljojo/rememory/releases/tag/v1.0.0-test"
+	recoverContent := html.GenerateRecoverHTML("v1.0.0-test", ghURL, nil, html.RecoverHTMLOptions{
+		StaticHosted: true,
+	})
+	if err := os.WriteFile(filepath.Join(pagesDir, "recover.html"), []byte(recoverContent), 0644); err != nil {
+		t.Fatalf("writing recover.html: %v", err)
+	}
+
+	// Assert: output/pages/recover.html exists
+	recoverPath := filepath.Join(pagesDir, "recover.html")
+	if _, err := os.Stat(recoverPath); os.IsNotExist(err) {
+		t.Fatal("output/pages/recover.html not found")
+	}
+
+	// Assert: output/pages/MANIFEST.age exists and matches sealed manifest
+	pagesManifest, err := os.ReadFile(filepath.Join(pagesDir, "MANIFEST.age"))
+	if err != nil {
+		t.Fatalf("reading pages manifest: %v", err)
+	}
+	pagesManifestChecksum := core.HashBytes(pagesManifest)
+	if pagesManifestChecksum != manifestChecksum {
+		t.Error("pages MANIFEST.age checksum does not match sealed manifest")
+	}
+
+	// Assert: recover.html contains manifestURL config
+	if !strings.Contains(recoverContent, `"manifestURL":"./MANIFEST.age"`) {
+		t.Error("pages recover.html missing manifestURL config")
+	}
+
+	// Assert: recover.html does NOT contain /api/bundle
+	if strings.Contains(recoverContent, "/api/bundle") {
+		t.Error("pages recover.html contains /api/bundle server URLs")
+	}
+
+	// Assert: nav links are NOT rewritten (still href="index.html")
+	if strings.Contains(recoverContent, `href="/create"`) {
+		t.Error("pages recover.html has server nav rewrites")
+	}
+	if !strings.Contains(recoverContent, `href="index.html"`) {
+		t.Error("pages recover.html missing standard nav links")
+	}
+}
+
 // TestBundleRecovery tests recovering from bundle contents
 func TestBundleRecovery(t *testing.T) {
 	// Setup: create and seal a project

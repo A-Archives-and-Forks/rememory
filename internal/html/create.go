@@ -51,8 +51,9 @@ type MakerHTMLOptions struct {
 
 // SelfhostedConfig holds configuration passed to the selfhosted frontend.
 type SelfhostedConfig struct {
-	MaxManifestSize int  `json:"maxManifestSize"` // Maximum MANIFEST.age size the server accepts
-	HasManifest     bool `json:"hasManifest"`     // Whether a manifest currently exists on the server
+	MaxManifestSize int    `json:"maxManifestSize"`       // Maximum MANIFEST.age size the server accepts
+	HasManifest     bool   `json:"hasManifest"`           // Whether a manifest currently exists on the server
+	ManifestURL     string `json:"manifestURL,omitempty"` // URL to fetch manifest from (set by server or static pages)
 }
 
 // GenerateMakerHTML creates the complete maker.html with all assets embedded.
