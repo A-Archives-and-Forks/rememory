@@ -1,0 +1,13 @@
+{
+  "loading": "Cargando...",
+  "nav_about": "Acerca de",
+  "nav_create": "Crear kits",
+  "nav_guide": "Manual",
+  "nav_recover": "Recuperar",
+  "error": "Error: {0}",
+  "error_title": "Algo salió mal",
+  "error_not_ready_title": "Aún no está listo",
+  "error_not_ready_guidance": "Por favor espera un momento e intenta de nuevo.",
+  "action_try_again": "Intentar de nuevo",
+  "remove": "Eliminar"
+}

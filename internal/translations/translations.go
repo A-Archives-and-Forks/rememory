@@ -20,6 +20,9 @@ var readmeFS embed.FS
 //go:embed index/*.json
 var indexFS embed.FS
 
+//go:embed common/*.json
+var commonFS embed.FS
+
 // Languages lists all supported language codes.
 var Languages = []string{"en", "es", "de", "fr", "sl", "pt", "zh-TW"}
 
@@ -67,7 +70,9 @@ func LangDetectJS() string {
 }
 
 // GetTranslationsJS builds the JavaScript translations object for injection into HTML templates.
-// component must be "recover", "maker", "readme", or "index".
+// component must be "recover", "maker", "readme", "index", or "common".
+// For components in componentsWithCommon, common translations are loaded first, then
+// the component's own keys are overlaid (component wins on conflict).
 // Returns a string like: { en: {...}, es: {...}, de: {...}, fr: {...}, sl: {...} }
 func GetTranslationsJS(component string) string {
 	fs := fsForComponent(component)
@@ -75,20 +80,43 @@ func GetTranslationsJS(component string) string {
 		return "{}"
 	}
 
+	mergeCommon := componentsWithCommon[component]
+
 	var parts []string
 	for _, lang := range Languages {
+		merged := make(map[string]string)
+
+		// Load common keys first if applicable
+		if mergeCommon {
+			if commonData, err := commonFS.ReadFile("common/" + lang + ".json"); err == nil {
+				var cm map[string]string
+				if err := json.Unmarshal(commonData, &cm); err == nil {
+					for k, v := range cm {
+						merged[k] = v
+					}
+				}
+			}
+		}
+
+		// Overlay component-specific keys (wins on conflict)
 		data, err := fs.ReadFile(component + "/" + lang + ".json")
 		if err != nil {
-			continue
+			if len(merged) == 0 {
+				continue
+			}
+		} else {
+			var check map[string]string
+			if err := json.Unmarshal(data, &check); err != nil {
+				continue
+			}
+			for k, v := range check {
+				merged[k] = v
+			}
 		}
-		// Validate it's valid JSON, then output it as-is (preserving formatting)
-		var check map[string]string
-		if err := json.Unmarshal(data, &check); err != nil {
-			continue
-		}
+
 		// Re-marshal to produce compact JS-friendly output with sorted keys
-		keys := make([]string, 0, len(check))
-		for k := range check {
+		keys := make([]string, 0, len(merged))
+		for k := range merged {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
@@ -96,7 +124,7 @@ func GetTranslationsJS(component string) string {
 		var entries []string
 		for _, k := range keys {
 			keyJSON, _ := json.Marshal(k)
-			valJSON, _ := json.Marshal(check[k])
+			valJSON, _ := json.Marshal(merged[k])
 			entries = append(entries, fmt.Sprintf("        %s: %s", string(keyJSON), string(valJSON)))
 		}
 		langJSON, _ := json.Marshal(lang)
@@ -147,25 +175,48 @@ func loadComponentCache(component string) map[string]map[string]string {
 		return cache
 	}
 	cache := make(map[string]map[string]string)
+
+	mergeCommon := componentsWithCommon[component]
+
 	fs := fsForComponent(component)
-	if fs != nil {
-		for _, lang := range Languages {
-			data, err := fs.ReadFile(component + "/" + lang + ".json")
-			if err != nil {
-				continue
+	for _, lang := range Languages {
+		merged := make(map[string]string)
+
+		// Load common keys first if applicable
+		if mergeCommon {
+			if commonData, err := commonFS.ReadFile("common/" + lang + ".json"); err == nil {
+				var cm map[string]string
+				if err := json.Unmarshal(commonData, &cm); err == nil {
+					for k, v := range cm {
+						merged[k] = v
+					}
+				}
 			}
-			var m map[string]string
-			if err := json.Unmarshal(data, &m); err != nil {
-				continue
+		}
+
+		// Overlay component-specific keys (wins on conflict)
+		if fs != nil {
+			if data, err := fs.ReadFile(component + "/" + lang + ".json"); err == nil {
+				var m map[string]string
+				if err := json.Unmarshal(data, &m); err == nil {
+					for k, v := range m {
+						merged[k] = v
+					}
+				}
 			}
-			cache[lang] = m
+		}
+
+		if len(merged) > 0 {
+			cache[lang] = merged
 		}
 	}
+
 	componentCache[component] = cache
 	return cache
 }
 
 // GetComponentTranslations returns the translations map for a specific component and language.
+// For components in componentsWithCommon, common keys are merged in (component wins on conflict).
 func GetComponentTranslations(component, lang string) (map[string]string, error) {
 	fs := fsForComponent(component)
 	if fs == nil {
@@ -179,6 +230,23 @@ func GetComponentTranslations(component, lang string) (map[string]string, error)
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, fmt.Errorf("invalid JSON for %s/%s: %w", component, lang, err)
 	}
+
+	if componentsWithCommon[component] {
+		merged := make(map[string]string)
+		if commonData, cErr := commonFS.ReadFile("common/" + lang + ".json"); cErr == nil {
+			var cm map[string]string
+			if err := json.Unmarshal(commonData, &cm); err == nil {
+				for k, v := range cm {
+					merged[k] = v
+				}
+			}
+		}
+		for k, v := range m {
+			merged[k] = v
+		}
+		return merged, nil
+	}
+
 	return m, nil
 }
 
@@ -229,6 +297,13 @@ func ReadmeBasenames() []string {
 	return names
 }
 
+// componentsWithCommon lists components whose translations are merged with common/.
+var componentsWithCommon = map[string]bool{
+	"recover": true,
+	"maker":   true,
+	"index":   true,
+}
+
 func fsForComponent(component string) *embed.FS {
 	switch component {
 	case "recover":
@@ -239,6 +314,8 @@ func fsForComponent(component string) *embed.FS {
 		return &readmeFS
 	case "index":
 		return &indexFS
+	case "common":
+		return &commonFS
 	default:
 		return nil
 	}

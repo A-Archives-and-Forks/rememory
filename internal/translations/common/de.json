@@ -1,0 +1,13 @@
+{
+  "loading": "Laden...",
+  "nav_about": "Über",
+  "nav_create": "Erstellen",
+  "nav_guide": "Anleitung",
+  "nav_recover": "Wiederherstellen",
+  "error": "Fehler: {0}",
+  "error_title": "Etwas ist schiefgelaufen",
+  "error_not_ready_title": "Noch nicht bereit",
+  "error_not_ready_guidance": "Bitte warte einen Moment und versuche es erneut.",
+  "action_try_again": "Erneut versuchen",
+  "remove": "Entfernen"
+}

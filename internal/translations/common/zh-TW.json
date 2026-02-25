@@ -1,0 +1,13 @@
+{
+  "loading": "載入中……",
+  "nav_about": "關於",
+  "nav_create": "建立復原包",
+  "nav_guide": "指南",
+  "nav_recover": "復原",
+  "error": "錯誤：{0}",
+  "error_title": "出了點問題",
+  "error_not_ready_title": "還沒準備好",
+  "error_not_ready_guidance": "請稍等片刻，然後重試。",
+  "action_try_again": "再試一次",
+  "remove": "移除"
+}

@@ -11,7 +11,7 @@ import (
 
 func TestAllJSONFilesParseCorrectly(t *testing.T) {
 	// Components that must have all languages
-	fullComponents := []string{"recover", "maker", "readme", "index"}
+	fullComponents := []string{"recover", "maker", "readme", "index", "common"}
 	// Components being translated incrementally (require at least en)
 	partialComponents := []string{}
 
@@ -52,7 +52,7 @@ func TestAllLanguagesHaveSameKeys(t *testing.T) {
 	if os.Getenv("REMEMORY_CHECK_TRANSLATIONS") == "" {
 		t.Skip("Skipping translation parity check (set REMEMORY_CHECK_TRANSLATIONS=1 or run 'make check-translations')")
 	}
-	for _, component := range []string{"recover", "maker", "readme", "index"} {
+	for _, component := range []string{"recover", "maker", "readme", "index", "common"} {
 		t.Run(component, func(t *testing.T) {
 			enKeys, err := GetComponentKeys(component)
 			if err != nil {
@@ -239,12 +239,12 @@ func TestGetStringSameKeyDifferentComponents(t *testing.T) {
 
 func TestRecoverHasExpectedKeys(t *testing.T) {
 	expectedKeys := []string{
-		"loading", "title", "subtitle",
+		"title", "subtitle",
 		"step1_title", "step2_title", "step3_title",
 		"decrypt_btn", "download_btn",
 		"need_more", "ready", "shares_of",
 		"error_decrypt_title", "error_decrypt_message",
-		"action_reload", "action_try_again",
+		"action_reload",
 	}
 
 	keys, err := GetComponentKeys("recover")
@@ -266,11 +266,10 @@ func TestRecoverHasExpectedKeys(t *testing.T) {
 
 func TestMakerHasExpectedKeys(t *testing.T) {
 	expectedKeys := []string{
-		"loading", "title", "page_title",
+		"title", "page_title",
 		"step1_title", "step2_title", "step3_title",
 		"generate_btn", "download_all_btn",
 		"add_friend", "threshold_label",
-		"error_title", "action_try_again",
 		"language_label",
 	}
 
@@ -319,6 +318,38 @@ func TestReadmeHasExpectedKeys(t *testing.T) {
 		if !keyMap[expected] {
 			t.Errorf("readme is missing expected key %q", expected)
 		}
+	}
+}
+
+func TestCommonHasExpectedKeys(t *testing.T) {
+	expectedKeys := []string{
+		"loading",
+		"nav_about", "nav_create", "nav_guide", "nav_recover",
+		"error", "error_title",
+		"error_not_ready_title", "error_not_ready_guidance",
+		"action_try_again",
+		"remove",
+	}
+
+	keys, err := GetComponentKeys("common")
+	if err != nil {
+		t.Fatalf("failed to get common keys: %v", err)
+	}
+
+	keyMap := make(map[string]bool)
+	for _, k := range keys {
+		keyMap[k] = true
+	}
+
+	for _, expected := range expectedKeys {
+		if !keyMap[expected] {
+			t.Errorf("common is missing expected key %q", expected)
+		}
+	}
+
+	// Common should have exactly these keys, no more
+	if len(keys) != len(expectedKeys) {
+		t.Errorf("common has %d keys, expected %d", len(keys), len(expectedKeys))
 	}
 }
 
