@@ -131,6 +131,11 @@ func (p *Project) ManifestAgePath() string {
 	return filepath.Join(p.Path, OutputDir, "MANIFEST.age")
 }
 
+// PagesPath returns the path to the static pages output directory.
+func (p *Project) PagesPath() string {
+	return filepath.Join(p.Path, OutputDir, "pages")
+}
+
 // FindProjectDir searches up the directory tree for a project.yml file.
 // Returns the directory containing the project, or an error if not found.
 func FindProjectDir(startDir string) (string, error) {

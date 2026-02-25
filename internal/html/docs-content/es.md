@@ -540,7 +540,9 @@ Puedes establecer un periodo de espera al crear los kits. Incluso si tus amigos 
 
 ### Cómo activarlo
 
-En el [creador de kits](maker.html), cambia al modo **Avanzado** y marca **Agregar un bloqueo por fecha**. Elige cuánto tiempo deben permanecer bloqueados los archivos.
+En el [creador de kits](maker.html), cambia al modo **Avanzado** y marca **Agregar un bloqueo por fecha**. Elige cuánto tiempo deben permanecer bloqueados los archivos — hasta dos años.
+
+El límite de dos años es deliberado. Los bloqueos por fecha dependen de que la League of Entropy siga operando, y no nos parece responsable bloquear tus archivos con una apuesta más larga sobre infraestructura externa. Si necesitas una duración mayor y entiendes el compromiso, la CLI no tiene límite: `rememory seal --timelock 5y`.
 
 <figure class="screenshot">
 <img src="screenshots/es/tlock-setup.png" alt="Configuración del bloqueo por fecha en modo Avanzado">

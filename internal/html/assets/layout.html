@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {{HEAD_META}}
+  <title>{{TITLE}}</title>
+  <style>{{STYLES}}</style>
+  <style>{{PAGE_STYLES}}</style>
+</head>
+<body class="{{BODY_CLASS}}">
+  {{BEFORE_CONTAINER}}
+  <div class="container">
+    <nav class="site-nav">
+      <a href="{{LOGO_HREF}}" class="logo">🧠 ReMemory</a>
+      <div class="nav-links" id="nav-links-main">
+        <a href="about.html" data-i18n="nav_about">About</a>
+        <a href="docs.html" data-i18n="nav_guide">Guide</a>
+        <a href="maker.html" data-i18n="nav_create">Create Bundles</a>
+        <a href="recover.html" data-i18n="nav_recover">Recover</a>
+        <a href="{{GITHUB_REPO}}" target="_blank">GitHub</a>
+      </div>
+      {{NAV_EXTRAS}}
+    </nav>
+
+    {{CONTENT}}
+  </div>
+
+  <footer id="footer">
+    {{FOOTER_CONTENT}}
+  </footer>
+
+  {{SCRIPTS}}
+</body>
+</html>

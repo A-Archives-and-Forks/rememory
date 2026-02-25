@@ -1,49 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="generator" content="ReMemory {{VERSION}}">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{CSP_NONCE}}' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src blob: data:; connect-src {{CSP_CONNECT_SRC}}; form-action 'none';">
-  <title>ReMemory Recovery Tool</title>
-  <style>{{STYLES}}</style>
-</head>
-<body>
-  <!-- Toast notifications container -->
-  <div id="toast-container" class="toast-container" role="alert" aria-live="polite"></div>
-
-  <!-- QR Scanner modal -->
-  <div id="qr-scanner-modal" class="qr-scanner-modal hidden" role="dialog" aria-modal="true" aria-label="QR code scanner">
-    <div class="qr-scanner-header">
-      <span data-i18n="scan_title">Scan a QR code</span>
-      <button id="qr-scanner-close" class="qr-scanner-close" aria-label="Close">&times;</button>
-    </div>
-    <div class="qr-scanner-body">
-      <video id="qr-video" autoplay playsinline></video>
-      <div class="qr-scanner-overlay"></div>
-    </div>
-    <div class="qr-scanner-hint">
-      <span data-i18n="scan_hint">Point your camera at a QR code from a friend's PDF</span>
-    </div>
-  </div>
-
-  <div class="container">
-    <nav class="site-nav">
-      <a href="index.html" class="logo">🧠 ReMemory</a>
-      <div class="nav-links" id="nav-links-standalone">
-        <a href="index.html" data-i18n="nav_about">About</a>
-        <a href="maker.html" data-i18n="nav_create">Create Bundles</a>
-        <a href="docs.html" data-i18n="nav_guide">Guide</a>
-        <a href="{{GITHUB_REPO}}" target="_blank">GitHub</a>
-      </div>
-      <div class="nav-links hidden" id="nav-links-bundle">
-        <a href="{{GITHUB_PAGES}}/docs" target="_blank" data-i18n="nav_guide">Guide</a>
-      </div>
-      <select class="lang-select" id="lang-select" aria-label="Language">
-        {{LANG_OPTIONS}}
-      </select>
-    </nav>
-
     <div class="page-intro">
       <h1 data-i18n="title">Recover Files</h1>
       <p class="subtitle" data-i18n="subtitle">Bring together the pieces your friends kept safe.</p>
@@ -61,10 +15,10 @@
 
       <div class="paste-section">
         <button id="paste-toggle-btn" class="btn btn-secondary" type="button">
-          <span>📋</span> <span data-i18n="paste_btn">Paste a piece or type recovery words</span>
+          <span>&#128203;</span> <span data-i18n="paste_btn">Paste a piece or type recovery words</span>
         </button>
         <button id="scan-qr-btn" class="btn btn-secondary hidden" type="button">
-          <span>📷</span> <span data-i18n="scan_btn">Scan QR code</span>
+          <span>&#128247;</span> <span data-i18n="scan_btn">Scan QR code</span>
         </button>
         <div id="paste-area" class="paste-area hidden">
           <textarea id="paste-input" placeholder="Paste share text or type your 25 recovery words here..." data-i18n-placeholder="paste_placeholder" rows="6"></textarea>
@@ -107,7 +61,7 @@
 
       <div id="recover-section" class="recover-section">
         <button id="recover-btn" class="btn btn-primary" disabled>
-          <span>&#128275;</span> <span data-i18n="decrypt_btn">Unlock & Recover</span>
+          <span>&#128275;</span> <span data-i18n="decrypt_btn">Unlock &amp; Recover</span>
         </button>
 
         <div id="progress-bar" class="progress-bar hidden">
@@ -125,98 +79,3 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <footer>
-    <p>ReMemory {{VERSION}}</p>
-    <p>
-      <span data-i18n="need_help">Need help?</span>
-      <a href="{{GITHUB_PAGES}}/docs#recovering" target="_blank">Docs</a> ·
-      <a href="{{GITHUB_URL}}" target="_blank" data-i18n="download_cli">Download CLI tool from GitHub</a>
-    </p>
-  </footer>
-
-  <!-- Translations -->
-  <script nonce="{{CSP_NONCE}}">
-    const translations = {{TRANSLATIONS}};
-
-    let currentLang = 'en';
-
-    function t(key, ...args) {
-      let text = translations[currentLang][key] || translations['en'][key] || key;
-      args.forEach((arg, i) => {
-        text = text.replace(`{${i}}`, arg);
-      });
-      return text;
-    }
-
-    function setLanguage(lang) {
-      currentLang = lang;
-      localStorage.setItem('rememory-lang', lang);
-
-      // Update select
-      const sel = document.getElementById('lang-select');
-      if (sel) sel.value = lang;
-
-      // Update all translatable elements
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        el.textContent = t(key);
-      });
-
-      // Update placeholder attributes
-      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.dataset.i18nPlaceholder;
-        el.placeholder = t(key);
-      });
-
-      // Update page title
-      document.title = t('title');
-    }
-
-    // Set initial language immediately (before app.js runs)
-    (function() {
-      const saved = localStorage.getItem('rememory-lang');
-      const langs = {{LANG_DETECT}};
-      const detected = navigator.languages.find((l) => langs.includes(l))
-        || navigator.languages.map((l) => l.split('-')[0]).find((l) => langs.includes(l));
-      currentLang = saved || detected || 'en';
-    })();
-
-    // Initialize language select after DOM is ready
-    document.addEventListener('DOMContentLoaded', () => {
-      // If personalized with a language preference and no saved preference, use it
-      if (window.PERSONALIZATION && window.PERSONALIZATION.language && !localStorage.getItem('rememory-lang')) {
-        currentLang = window.PERSONALIZATION.language;
-      }
-
-      // Toggle nav links: bundle mode shows only Guide (absolute), standalone shows all (relative)
-      if (window.PERSONALIZATION) {
-        document.getElementById('nav-links-standalone')?.classList.add('hidden');
-        document.getElementById('nav-links-bundle')?.classList.remove('hidden');
-      }
-
-      setLanguage(currentLang);
-
-      document.getElementById('lang-select')?.addEventListener('change', (e) => {
-        setLanguage(e.target.value);
-        if (typeof window.rememoryUpdateUI === 'function') {
-          window.rememoryUpdateUI();
-        }
-      });
-    });
-  </script>
-
-  <!-- Personalization data (embedded for this specific friend) -->
-  <script nonce="{{CSP_NONCE}}">
-    window.PERSONALIZATION = {{PERSONALIZATION_DATA}};
-    window.README_NAMES = {{README_NAMES}};
-  </script>
-
-  <!-- Time-lock decryption (conditionally included when tlock is needed) -->
-  {{TLOCK_JS}}
-
-  <!-- Application logic (native JavaScript crypto, no WASM) -->
-  <script nonce="{{CSP_NONCE}}">{{APP_JS}}</script>
-</body>
-</html>

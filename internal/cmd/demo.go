@@ -32,6 +32,7 @@ Example:
 
 func init() {
 	demoCmd.Flags().String("timelock", "", "Time-lock duration or date (e.g., 5min, 30d, 1y, 2027-06-15T00:00:00Z)")
+	demoCmd.Flags().Bool("pages", false, "Generate a static pages directory (recover.html + MANIFEST.age) for hosting")
 	rootCmd.AddCommand(demoCmd)
 }
 
@@ -119,9 +120,16 @@ Note: In a real project, these would be your actual sensitive credentials.
 	fmt.Println()
 
 	timelockStr, _ := cmd.Flags().GetString("timelock")
+	pages, _ := cmd.Flags().GetBool("pages")
 
 	if err := sealProject(p, "", false, timelockStr); err != nil {
 		return err
+	}
+
+	if pages {
+		if err := generatePages(p); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println()

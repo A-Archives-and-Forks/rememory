@@ -1,4 +1,6 @@
 // ReMemory Bundle Creator - Browser-based bundle creation using Go WASM
+// Tlock encryption is inline and offline — it uses the embedded drand chain
+// config to encrypt for a future round without any HTTP calls.
 
 import type {
   CreationState,
@@ -7,9 +9,22 @@ import type {
   TranslationFunction,
 } from './types';
 
+// Import from tlock-js submodules (not the barrel) to avoid pulling in
+// drand-client HTTP code. The barrel re-exports HttpCachingChain/HttpChainClient
+// which would bloat the bundle with unused HTTP client code.
+import { createTimelockEncrypter } from 'tlock-js/drand/timelock-encrypter';
+import { encryptAge } from 'tlock-js/age/age-encrypt-decrypt';
+import { encodeArmor } from 'tlock-js/age/armor';
+import { Buffer } from 'buffer';
+import { createOfflineClient, QUICKNET_GENESIS, QUICKNET_PERIOD } from './drand';
+
 // Translation function and language state (defined in HTML)
 declare const t: TranslationFunction;
 declare let currentLang: string;
+
+// Compile-time flag: esbuild replaces this with true or false.
+// When false, guarded code blocks are eliminated entirely from the output.
+declare const __SELFHOSTED__: boolean;
 
 (function() {
   'use strict';
@@ -65,6 +80,12 @@ declare let currentLang: string;
     tlockUnit: 'd' as string,
   };
 
+  // Selfhosted callback for uploading the manifest after bundle generation.
+  // Assigned in the __SELFHOSTED__ block; null in standalone builds.
+  let onBundlesCreated: ((manifest: Uint8Array, meta: {
+    name: string; threshold: number; total: number;
+  }) => Promise<void>) | null = null;
+
   // DOM elements interface
   interface Elements {
     wasmLoadingIndicator: HTMLElement | null;
@@ -96,6 +117,8 @@ declare let currentLang: string;
     downloadAllSection: HTMLElement | null;
     downloadAllBtn: HTMLButtonElement | null;
     downloadYamlBtn: HTMLElement | null;
+    stepNumber2: HTMLElement | null;
+    stepNumber3: HTMLElement | null;
   }
 
   // DOM elements
@@ -128,7 +151,9 @@ declare let currentLang: string;
     bundlesList: document.getElementById('bundles-list'),
     downloadAllSection: document.getElementById('download-all-section'),
     downloadAllBtn: document.getElementById('download-all-btn') as HTMLButtonElement | null,
-    downloadYamlBtn: document.getElementById('download-yaml-btn')
+    downloadYamlBtn: document.getElementById('download-yaml-btn'),
+    stepNumber2: document.getElementById('step-number-2'),
+    stepNumber3: document.getElementById('step-number-3'),
   };
 
   // ============================================
@@ -244,6 +269,12 @@ declare let currentLang: string;
         if (window.rememoryReady) {
           clearTimeout(timeout);
           state.wasmReady = true;
+          // Freeze WASM functions so they can't be intercepted by injected scripts
+          if (typeof Object.freeze === 'function') {
+            Object.freeze(window.rememoryCreateBundlesFromArchive);
+            Object.freeze(window.rememoryCreateArchive);
+            Object.freeze(window.rememoryParseProjectYAML);
+          }
           elements.wasmLoadingIndicator?.classList.add('hidden');
           checkGenerateReady();
           resolve();
@@ -397,11 +428,19 @@ declare let currentLang: string;
 
   function removeFriend(index: number): void {
     if (state.friends.length <= 2) {
-      toast.warning(
-        t('error_min_friends_title'),
-        t('validation_min_friends'),
-        t('error_min_friends_guidance')
-      );
+      // Can't go below 2 friends — clear the fields instead
+      state.friends[index].name = '';
+      state.friends[index].contact = '';
+      state.friends[index].language = '';
+      const entry = elements.friendsList?.children[index] as HTMLElement | undefined;
+      if (entry) {
+        const nameInput = entry.querySelector('.friend-name') as HTMLInputElement | null;
+        const contactInput = entry.querySelector('.friend-contact') as HTMLInputElement | null;
+        if (nameInput) nameInput.value = '';
+        if (contactInput) contactInput.value = '';
+      }
+      updateThresholdVisibility();
+      checkGenerateReady();
       return;
     }
 
@@ -603,7 +642,15 @@ declare let currentLang: string;
 
     elements.filesPreview?.classList.remove('hidden');
     if (elements.filesSummary) {
-      elements.filesSummary.textContent = t('files_summary', state.files.length, formatSize(totalSize));
+      let summaryText = t('files_summary', state.files.length, formatSize(totalSize));
+      const overLimit = totalSize > maxTotalFileSize;
+
+      if (overLimit) {
+        summaryText += ` — ${t('files_too_large', formatSize(maxTotalFileSize))}`;
+      }
+
+      elements.filesSummary.textContent = summaryText;
+      elements.filesSummary.classList.toggle('size-warning', overLimit);
     }
     elements.filesSummary?.classList.remove('hidden');
   }
@@ -629,12 +676,82 @@ declare let currentLang: string;
 
   // ============================================
   // Time Lock (Advanced Options)
+  //
+  // Tlock encryption is inline — no separate tlock-create.js bundle.
+  // Uses createOfflineClient() which reads only the embedded drand config,
+  // so encryption makes zero HTTP calls.
   // ============================================
 
-  function setupTimelock(): void {
-    // Only show advanced options if tlock-js is available
-    if (!window.rememoryTlock) return;
+  // Compute the round number for a target date
+  function roundForTime(target: Date): number {
+    const elapsed = (target.getTime() / 1000) - QUICKNET_GENESIS;
+    if (elapsed <= 0) return 1;
+    return Math.ceil(elapsed / QUICKNET_PERIOD) + 1;
+  }
 
+  // Compute the time at which a round will be emitted
+  function timeForRound(round: number): Date {
+    if (round <= 1) return new Date(QUICKNET_GENESIS * 1000);
+    const timestamp = QUICKNET_GENESIS + (round - 1) * QUICKNET_PERIOD;
+    return new Date(timestamp * 1000);
+  }
+
+  // Encrypt plaintext for a specific round number (offline — no HTTP).
+  // Reimplements timelockEncrypt using submodule imports to avoid the
+  // tlock-js barrel which re-exports HTTP client code.
+  async function tlockEncrypt(plaintext: Uint8Array, roundNumber: number): Promise<Uint8Array> {
+    const client = createOfflineClient();
+    const encrypter = createTimelockEncrypter(client, roundNumber);
+    const agePayload = await encryptAge(Buffer.from(plaintext), encrypter);
+    const armored = encodeArmor(agePayload);
+    return new TextEncoder().encode(armored);
+  }
+
+  // Encrypt plaintext for a target date, returning everything the caller needs.
+  async function encryptForDate(plaintext: Uint8Array, targetDate: Date): Promise<{
+    ciphertext: Uint8Array;
+    round: number;
+    unlockDate: Date;
+  }> {
+    const round = roundForTime(targetDate);
+    const ciphertext = await tlockEncrypt(plaintext, round);
+    const unlockDate = timeForRound(round);
+    return { ciphertext, round, unlockDate };
+  }
+
+  // Compute a future date from a duration value and unit (e.g. 5, 'min' → 5 minutes from now).
+  // Maximum timelock duration: 2 years. The League of Entropy beacon is
+  // reliable infrastructure, but we can't responsibly promise it will run
+  // longer than that. The CLI has no cap for advanced users who accept the risk.
+  const MAX_TIMELOCK_MS = 2 * 365.25 * 86400000;
+
+  function computeTimelockDate(value: number, unit: string): Date | null {
+    if (value <= 0) return null;
+    const now = new Date();
+    let target: Date;
+    switch (unit) {
+      case 's': target = new Date(now.getTime() + value * 1000); break;
+      case 'min': target = new Date(now.getTime() + value * 60000); break;
+      case 'h': target = new Date(now.getTime() + value * 3600000); break;
+      case 'd': target = new Date(now.getTime() + value * 86400000); break;
+      case 'w': target = new Date(now.getTime() + value * 7 * 86400000); break;
+      case 'm': { target = new Date(now); target.setMonth(target.getMonth() + value); break; }
+      case 'y': { target = new Date(now); target.setFullYear(target.getFullYear() + value); break; }
+      default: return null;
+    }
+    if (target.getTime() - now.getTime() > MAX_TIMELOCK_MS) return null;
+    return target;
+  }
+
+  // Format a tlock unlock date for display. Shows time if within 24 hours, date-only otherwise.
+  function formatTimelockDate(date: Date): string {
+    const hoursUntil = (date.getTime() - Date.now()) / 3600000;
+    return (hoursUntil > 0 && hoursUntil < 24)
+      ? date.toLocaleString()
+      : date.toLocaleDateString();
+  }
+
+  function setupTimelock(): void {
     const advancedTabs = document.getElementById('advanced-options');
     advancedTabs?.classList.remove('hidden');
 
@@ -686,17 +803,54 @@ declare let currentLang: string;
         if (datePreview) datePreview.textContent = '';
         return;
       }
-      const target = window.rememoryTlock?.computeTimelockDate?.(state.tlockValue, state.tlockUnit);
+      const target = computeTimelockDate(state.tlockValue, state.tlockUnit);
       if (target) {
-        datePreview.textContent = t('timelock_preview', window.rememoryTlock!.formatTimelockDate(target));
+        datePreview.textContent = t('timelock_preview', formatTimelockDate(target));
+        datePreview.style.color = '';
+      } else if (state.tlockValue > 0) {
+        datePreview.textContent = t('timelock_max_exceeded');
+        datePreview.style.color = '#8A8480';
       }
     }
+
+  }
+
+  // Maximum total file size — injected by Go from core.MaxTotalSize (standalone)
+  // or the server's configured limit (selfhosted).
+  const maxTotalFileSize = window.MAX_TOTAL_FILE_SIZE ?? 1024 * 1024 * 1024;
+
+  function getTotalFileSize(): number {
+    let total = 0;
+    for (const file of state.files) {
+      total += file.data.length;
+    }
+    return total;
+  }
+
+  function isOverSizeLimit(): boolean {
+    return state.files.length > 0 && getTotalFileSize() > maxTotalFileSize;
   }
 
   function checkGenerateReady(): void {
+    const hasFiles = state.files.length > 0;
+    const hasFriends = state.anonymous
+      ? state.numShares >= 2
+      : state.friends.filter(f => f.name.trim().length > 0).length >= 2;
+
     if (elements.generateBtn) {
-      elements.generateBtn.disabled = !state.wasmReady || state.generating;
+      elements.generateBtn.disabled = !state.wasmReady || state.generating || isOverSizeLimit();
+
+      // Button turns green only when files and friends are ready
+      if (hasFiles && hasFriends && !state.generationComplete) {
+        elements.generateBtn.classList.replace('btn-secondary', 'btn-primary');
+      } else {
+        elements.generateBtn.classList.replace('btn-primary', 'btn-secondary');
+      }
     }
+
+    // Step numbers turn green as prerequisites are met
+    elements.stepNumber2?.classList.toggle('pending', !hasFriends);
+    elements.stepNumber3?.classList.toggle('pending', !(hasFiles && hasFriends));
   }
 
   interface ValidationResult {
@@ -850,14 +1004,14 @@ declare let currentLang: string;
       let tlockRound: number | undefined;
       let tlockUnlock: string | undefined;
 
-      if (state.tlockEnabled && window.rememoryTlock) {
+      if (state.tlockEnabled) {
         setProgress(25);
         setStatus(t('timelock_encrypting'));
         await sleep(100);
 
-        const targetDate = window.rememoryTlock.computeTimelockDate!(state.tlockValue, state.tlockUnit);
-        if (!targetDate) throw new Error('Invalid time lock date');
-        const result = await window.rememoryTlock.encryptForDate!(archiveData, targetDate);
+        const targetDate = computeTimelockDate(state.tlockValue, state.tlockUnit);
+        if (!targetDate) throw new Error(t('timelock_max_exceeded'));
+        const result = await encryptForDate(archiveData, targetDate);
         archiveData = result.ciphertext;
         tlockRound = result.round;
         tlockUnlock = result.unlockDate.toISOString();
@@ -878,7 +1032,6 @@ declare let currentLang: string;
         friends: friends,
         archiveData: archiveData,
         version: window.VERSION || 'dev',
-        githubURL: window.GITHUB_URL || 'https://github.com/eljojo/rememory',
         anonymous: state.anonymous,
         defaultLanguage: currentLang || 'en',
         tlockRound: tlockRound,
@@ -908,6 +1061,35 @@ declare let currentLang: string;
       elements.bundlesList?.classList.remove('hidden');
       elements.downloadAllSection?.classList.remove('hidden');
 
+      if (__SELFHOSTED__) {
+        // Upload manifest to server (shares are never sent)
+        if (result.manifest && onBundlesCreated) {
+          onBundlesCreated(result.manifest, {
+            name: state.projectName,
+            threshold: state.threshold,
+            total: friends.length,
+          });
+        }
+
+        // Replace "Save project.yml" with a home page link
+        const nextStepsHint = document.querySelector('.next-steps-hint');
+        if (nextStepsHint) {
+          const yamlLink = nextStepsHint.querySelector('#download-yaml-btn');
+          if (yamlLink) {
+            const prev = yamlLink.previousSibling;
+            if (prev && prev.nodeType === Node.TEXT_NODE) prev.remove();
+            yamlLink.remove();
+          }
+
+          const sep = document.createTextNode(' \u00b7 ');
+          const link = document.createElement('a');
+          link.href = '/';
+          link.textContent = t('go_to_home');
+          nextStepsHint.appendChild(sep);
+          nextStepsHint.appendChild(link);
+        }
+      }
+
     } catch (err) {
       const errorMsg = (err instanceof Error) ? err.message : String(err);
       setStatus(t('error', errorMsg), 'error');
@@ -922,7 +1104,7 @@ declare let currentLang: string;
       );
     } finally {
       state.generating = false;
-      if (elements.generateBtn) elements.generateBtn.disabled = false;
+      checkGenerateReady();
     }
   }
 
@@ -1049,6 +1231,54 @@ declare let currentLang: string;
 
   function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ============================================
+  // Selfhosted Server Integration
+  //
+  // Everything inside `if (__SELFHOSTED__)` is eliminated from static builds
+  // by esbuild's dead code removal (--define:__SELFHOSTED__=false --minify-syntax).
+  // ============================================
+
+  if (__SELFHOSTED__) {
+    const selfhostedConfig = window.SELFHOSTED_CONFIG;
+
+    // Register the callback that fires after bundle generation.
+    // Receives only the encrypted manifest and non-secret metadata — never bundles/shares.
+    onBundlesCreated = async function(manifest: Uint8Array, meta: {
+      name: string;
+      threshold: number;
+      total: number;
+    }): Promise<void> {
+      if (selfhostedConfig && manifest.length > selfhostedConfig.maxManifestSize) {
+        toast.error(
+          t('error_title'),
+          t('files_too_large', formatSize(selfhostedConfig.maxManifestSize)),
+        );
+        return;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('manifest', new Blob([manifest as unknown as BlobPart]), 'MANIFEST.age');
+        formData.append('meta', JSON.stringify(meta));
+
+        const resp = await fetch('/api/bundle', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || `Server returned ${resp.status}`);
+        }
+
+        toast.success(t('complete'), t('saved_to_server'));
+      } catch (err) {
+        const msg = (err instanceof Error) ? err.message : String(err);
+        toast.warning(t('error_title'), t('save_to_server_error', msg));
+      }
+    };
   }
 
   // ============================================

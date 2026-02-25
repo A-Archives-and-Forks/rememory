@@ -76,32 +76,14 @@ Calm, steady, human. Considered. Kind.
 
 ### Color palette
 
-| Role                | Hex       | RGB             | Use                                              |
-|---------------------|-----------|-----------------|--------------------------------------------------|
-| Paper (background)  | `#f5f5f5` | (245, 245, 245) | Page background. Clean, neutral.                 |
-| Paper light (cards) | `#ffffff` | (255, 255, 255) | Cards, elevated surfaces.                        |
-| Text                | `#2E2A26` | (46, 42, 38)    | Primary text. Warm dark brown, not black.         |
-| Text secondary      | `#6B6560` | (107, 101, 96)  | Hints, captions, secondary text.                 |
-| Text muted          | `#8A8480` | (138, 132, 128) | Timestamps, metadata, least-prominent text.      |
-| Sage (accent)       | `#55735A` | (85, 115, 90)   | Primary accent: buttons, step numbers, banners.  |
-| Sage dark           | `#466B4A` | (70, 107, 74)   | Hover/active state for sage elements.            |
-| Sage tint           | `#E8EFEA` | (232, 239, 234) | Soft info blocks, section headers, code blocks.  |
-| Sage light          | `#E8F2EA` | (232, 242, 234) | Subtitle bars, success backgrounds.              |
-| Sand                | `#f0f0ee` | (240, 240, 238) | Neutral highlight blocks, procedure cards.       |
-| Rose                | `#F3E6E6` | (243, 230, 230) | Gentle emphasis. Not alarm — just "hey, read this." |
-| Dusty blue          | `#7A8FA6` | (122, 143, 166) | Secondary accent: links, diagrams, step badges.  |
-| Dusty blue dark     | `#647A8F` | (100, 122, 143) | Hover/active state for dusty blue elements.      |
-| Border              | `#ddd`    | (221, 221, 221) | Card borders, dividers.                          |
-| Border light        | `#eee`    | (238, 238, 238) | Subtle separators.                               |
+The source of truth for all colors is `internal/html/assets/styles.css` (the `:root` CSS variables). All HTML templates share this file via the layout system. The PDF (`internal/pdf/readme.go`) should match these values. The only exception is the dataflow animation (`internal/html/assets/dataflow.js`).
 
 **Avoid:** pure black (`#000000`), bright red, corporate blue, high-contrast anything.
 
-These values apply to the PDF (`internal/pdf/readme.go`), website CSS (`internal/html/assets/styles.css`), HTML templates. The only exception is the dataflow animation (`internal/html/assets/dataflow.js`).
-
 ## Non-goals
 
-- No server-side component.
-- No network calls in the recovery path (exception: tlock-enabled bundles require a drand beacon check).
+- No server-side component required. The optional self-hosted server (`rememory serve`) is a convenience layer — bundles remain self-contained and work without it.
+- No network calls in the recovery path (exception: tlock-enabled bundles require a drand beacon check; the self-hosted recover page fetches the encrypted archive from its own server).
 - No telemetry or analytics.
 - No dependency on external CDNs or remote resources.
 - No runtime dependency on Node/npm for end users or recovery.
@@ -113,7 +95,7 @@ These values apply to the PDF (`internal/pdf/readme.go`), website CSS (`internal
 
 These must not regress. Reference them in reviews.
 
-- `recover.html` must work offline, from a local `file://` open, without installation. Exception: tlock-enabled bundles need a brief internet connection to check the drand beacon at recovery time.
+- `recover.html` must work offline, from a local `file://` open, without installation. Exceptions: tlock-enabled bundles need a brief internet connection to check the drand beacon at recovery time; the self-hosted variant served by `rememory serve` fetches the encrypted archive from its own server, but the standalone `recover.html` in each friend's bundle remains fully offline.
 - Bundles must be self-contained and must not require this repo, any server, or the internet to function. Exception: tlock-enabled bundles need drand beacon access at recovery time only.
 - Below-threshold shares must not leak information about the secret (information-theoretic security). Don't add metadata to shares that could weaken this.
 - Manifest encryption must remain age-based. No custom crypto. Tlock sits inside age as an inner layer (defense in depth).
@@ -144,8 +126,8 @@ The build pipeline is: **TypeScript (esbuild) -> WASM (for maker.html) -> Go bin
 
 ### WASM and Native JS
 
-- **`recover.html`** uses **native JavaScript crypto** (no WASM). Dependencies like `age-encryption`, `shamir-secret-sharing`, `fflate`, and `tarparser` are bundled via esbuild into `app.js`. This keeps bundles small (~170KB) and avoids WASM compatibility issues. For tlock-enabled bundles, `tlock.js` (bundled from `tlock-js` + `drand-client`) is also included.
-- **`maker.html`** uses **WASM** (`create.wasm`) for bundle creation. Built with `-tags create` from `internal/wasm/`. Entry point: `main_create.go`. Includes `tlock.js` by default for time-lock support (opt-out with `--no-timelock`).
+- **`recover.html`** uses **native JavaScript crypto** (no WASM). Dependencies like `age-encryption`, `shamir-secret-sharing`, `fflate`, and `tarparser` are bundled via esbuild into `app.js`. Two JS variants are built from `app.ts` using an esbuild `--define` flag: `app.js` (`__TLOCK__=false`, offline, no tlock/drand code) and `app-tlock.js` (`__TLOCK__=true`, includes tlock decryption via HTTP to drand). Which variant is used depends on the network posture: personalized non-tlock bundles get `app.js` (smaller, offline); generic/tlock/selfhosted variants get `app-tlock.js`.
+- **`maker.html`** uses **WASM** (`create.wasm`) for bundle creation. Built with `-tags create` from `internal/wasm/`. Entry point: `main_create.go`. Tlock encryption is always included and is offline — it uses an embedded drand chain config via `createOfflineClient()`, with zero HTTP calls. The `--no-timelock` flag only affects `recover.html`.
   `GOOS=js GOARCH=wasm go build -tags create -o internal/html/assets/create.wasm ./internal/wasm`
 
 The WASM module exposes Go functions to JavaScript via `syscall/js` (registered in `main_create.go`), with the JS bridge in `js_wrappers.go`.
@@ -158,7 +140,7 @@ The WASM module exposes Go functions to JavaScript via `syscall/js` (registered 
 
 For `maker.html`, WASM is gzip-compressed and base64-encoded inline. **Circular dependency avoidance:** `create.wasm` itself embeds the html package (for bundle creation), so `create.wasm` cannot be embedded via `//go:embed` in the html package. Instead, the CLI binary loads `create.wasm` at init time and injects it via `html.SetCreateWASMBytes()`.
 
-For `recover.html`, no WASM is needed — all crypto is native JavaScript bundled in `app.js`.
+For `recover.html`, no WASM is needed — all crypto is native JavaScript bundled in `app.js` or `app-tlock.js`.
 
 ### Bundle generation
 
@@ -184,9 +166,10 @@ When `MANIFEST.age` is 10 MB or less, it is also base64-encoded and embedded in 
 
 Frontend code lives in `internal/html/assets/src/`. Compiled via esbuild to IIFE bundles (not ES modules):
 - `shared.ts` — Common utilities (toast notifications, formatting)
-- `app.ts` — Recovery UI (`recover.html`), uses native JS crypto from `crypto/` subdirectory
-- `create-app.ts` — Bundle creation UI (`maker.html`), uses WASM
-- `tlock.ts` — Tlock time-lock encryption/decryption wrapper (bundled as `tlock.js` IIFE)
+- `app.ts` — Recovery UI (`recover.html`), built with `__TLOCK__=true|false` into two variants: `app.js` (offline) and `app-tlock.js` (tlock via drand HTTP)
+- `create-app.ts` — Bundle creation UI (`maker.html`), uses WASM. Tlock encryption is inline using the offline drand client (no separate file)
+- `tlock-recover.ts` — Tlock decryption functions (imported by `app.ts` behind `__TLOCK__` guards, bundled into `app-tlock.js` only)
+- `drand.ts` — Drand chain config and offline client (no HTTP imports; `tlock-recover.ts` builds its own HTTP client)
 
 The `crypto/` subdirectory contains the native JavaScript crypto implementations for recovery: Shamir combining, age decryption, tar.gz extraction, share parsing, BIP39 word encoding. These replace the WASM module that was previously used.
 

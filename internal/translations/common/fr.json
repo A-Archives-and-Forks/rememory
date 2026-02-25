@@ -1,0 +1,17 @@
+{
+  "loading": "Chargement...",
+  "nav_about": "À propos",
+  "nav_create": "Créer",
+  "nav_guide": "Guide",
+  "nav_recover": "Récupérer",
+  "error": "Erreur : {0}",
+  "error_title": "Une erreur s'est produite",
+  "error_not_ready_title": "Pas encore prêt",
+  "error_not_ready_guidance": "Veuillez patienter un moment, puis réessayez.",
+  "action_try_again": "Réessayer",
+  "remove": "Supprimer",
+  "confirm": "Confirmer",
+  "delete": "Supprimer",
+  "deleting": "Suppression...",
+  "delete_failed": "Échec de la suppression."
+}

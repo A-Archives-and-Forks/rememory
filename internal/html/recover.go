@@ -5,11 +5,8 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
-	"os"
 	"strings"
 
-	"github.com/eljojo/rememory/internal/core"
 	"github.com/eljojo/rememory/internal/translations"
 )
 
@@ -38,49 +35,9 @@ type PersonalizationData struct {
 }
 
 // tlockWaitingHTML is the time-lock waiting UI injected into recover.html.
-// Includes inline CSS so the styles are zero-trace when tlock is disabled.
-const tlockWaitingHTML = `<style>
-.tlock-waiting {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  background: var(--sage-tint);
-  border-radius: 6px;
-  margin-bottom: 1rem;
-}
-.tlock-waiting-icon {
-  font-size: 1.75rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.tlock-waiting-body {
-  flex: 1;
-}
-.tlock-waiting-body > strong {
-  display: block;
-  color: var(--text);
-  margin-bottom: 0.25rem;
-}
-.tlock-waiting-body p {
-  margin: 0.25rem 0 0;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-.tlock-waiting-hint {
-  color: var(--text-muted) !important;
-  font-size: 0.8125rem !important;
-}
-.tlock-waiting-hint a {
-  color: var(--text-muted);
-  text-decoration: none;
-}
-.tlock-waiting-hint a:hover {
-  color: var(--text-secondary);
-  text-decoration: underline;
-}
-</style>
-      <div id="tlock-waiting" class="tlock-waiting hidden" aria-live="polite">
+// The CSS lives in assets/tlock-waiting.css (embedded as tlockWaitingCSS)
+// and is injected as a <style> block alongside this HTML when tlock is enabled.
+const tlockWaitingHTML = `<div id="tlock-waiting" class="tlock-waiting hidden" aria-live="polite">
         <div class="tlock-waiting-icon">&#128336;</div>
         <div class="tlock-waiting-body">
           <strong id="tlock-waiting-title" data-i18n="tlock_waiting_title">Time lock active</strong>
@@ -91,67 +48,91 @@ const tlockWaitingHTML = `<style>
 
 // RecoverHTMLOptions holds optional parameters for GenerateRecoverHTML.
 type RecoverHTMLOptions struct {
-	NoTlock bool // Omit tlock-js even from generic recover.html
+	NoTlock          bool              // Omit tlock-js even from generic recover.html
+	Selfhosted       bool              // Full selfhosted server mode (nav rewrites + config)
+	SelfhostedConfig *SelfhostedConfig // Config injected into the HTML for selfhosted mode
+	StaticHosted     bool              // Static hosting mode (manifest fetch, no nav rewrites)
 }
 
 // GenerateRecoverHTML creates the complete recover.html with all assets embedded.
 // Uses native JavaScript crypto (no WASM required).
-// version is the rememory version string.
-// githubURL is the URL to download CLI binaries.
 // personalization can be nil for a generic recover.html, or provided to personalize for a specific friend.
-func GenerateRecoverHTML(version, githubURL string, personalization *PersonalizationData, opts ...RecoverHTMLOptions) string {
-	html := recoverHTMLTemplate
+func GenerateRecoverHTML(personalization *PersonalizationData, opts ...RecoverHTMLOptions) string {
+	// Process content template
+	content := recoverHTMLTemplate
 
-	// Embed translations
-	html = strings.Replace(html, "{{TRANSLATIONS}}", translations.GetTranslationsJS("recover"), 1)
-
-	// Embed README basenames for ZIP extraction
-	readmeNames, _ := json.Marshal(translations.ReadmeBasenames())
-	html = strings.Replace(html, "{{README_NAMES}}", string(readmeNames), 1)
-
-	// Embed language picker (generated from translations.LangNames)
-	html = strings.Replace(html, "{{LANG_OPTIONS}}", translations.LangSelectOptions(), 1)
-	html = strings.Replace(html, "{{LANG_DETECT}}", translations.LangDetectJS(), 1)
-
-	// Embed styles
-	html = strings.Replace(html, "{{STYLES}}", stylesCSS, 1)
-
-	// Embed shared.js + app.js (native crypto bundled in app.js)
-	html = strings.Replace(html, "{{APP_JS}}", sharedJS+"\n"+appJS, 1)
-
-	// Include tlock.js when needed:
-	// - Generic/standalone recover.html (personalization == nil): always include so
-	//   GitHub Pages can handle tlock manifests
-	// - Personalized tlock bundle: include for time-lock decryption
-	// - Personalized non-tlock bundle: omit to keep size small
+	// Parse options
+	var selfhosted, staticHosted bool
+	var selfhostedConfig *SelfhostedConfig
 	var noTlock bool
 	if len(opts) > 0 {
+		selfhosted = opts[0].Selfhosted
+		staticHosted = opts[0].StaticHosted
+		selfhostedConfig = opts[0].SelfhostedConfig
 		noTlock = opts[0].NoTlock
 	}
-	// If personalization requires tlock, always include it regardless of noTlock
+
+	// Static hosted mode: auto-create config pointing to ./MANIFEST.age
+	if staticHosted && selfhostedConfig == nil {
+		selfhostedConfig = &SelfhostedConfig{HasManifest: true, ManifestURL: "./MANIFEST.age"}
+	}
+
+	// Two-variant model for recover.html, organized by network posture:
+	//
+	//   app.js       (offline)  — zero HTTP calls, no tlock/drand code
+	//   app-tlock.js (network)  — tlock decryption via HTTP to drand relays
+	//
+	// Which variant to use:
+	//   - Generic/standalone (personalization == nil): use app-tlock.js so
+	//     GitHub Pages and selfhosted can handle any manifest
+	//   - Personalized tlock bundle (TlockEnabled): use app-tlock.js
+	//   - Personalized non-tlock bundle: use app.js (smaller, offline)
+	//   - --no-timelock flag: force app.js even for generic
+
+	// NoTlock + TlockEnabled is a programming error — no valid code path should produce this.
 	if noTlock && personalization != nil && personalization.TlockEnabled {
-		fmt.Fprintf(os.Stderr, "Warning: --no-timelock ignored for tlock-enabled bundle\n")
-		noTlock = false
+		panic("html: NoTlock and TlockEnabled are mutually exclusive — this is a programming error")
 	}
 	includeTlock := !noTlock && (personalization == nil || personalization.TlockEnabled)
+
+	// Inject tlock waiting HTML (with CSS) or empty
 	if includeTlock {
-		html = strings.Replace(html, "{{TLOCK_JS}}",
-			drandConfigScript()+`<script nonce="{{CSP_NONCE}}">`+tlockRecoverJS+`</script>`, 1)
-		html = strings.Replace(html, "{{CSP_CONNECT_SRC}}", drandCSPConnectSrc(), 1)
-		html = strings.Replace(html, "{{TLOCK_WAITING_HTML}}", tlockWaitingHTML, 1)
+		content = strings.Replace(content, "{{TLOCK_WAITING_HTML}}",
+			"<style>"+tlockWaitingCSS+"</style>\n"+tlockWaitingHTML, 1)
 	} else {
-		html = strings.Replace(html, "{{TLOCK_JS}}", "", 1)
-		html = strings.Replace(html, "{{CSP_CONNECT_SRC}}", "blob:", 1)
-		html = strings.Replace(html, "{{TLOCK_WAITING_HTML}}", "", 1)
+		content = strings.Replace(content, "{{TLOCK_WAITING_HTML}}", "", 1)
 	}
 
-	// Replace version and GitHub URLs
-	html = strings.Replace(html, "{{VERSION}}", version, -1)
-	html = strings.Replace(html, "{{GITHUB_REPO}}", core.GitHubRepo, -1)
-	html = strings.Replace(html, "{{GITHUB_PAGES}}", core.GitHubPages, -1)
-	html = strings.Replace(html, "{{GITHUB_URL}}", githubURL, -1)
+	// Build CSP connect-src
+	var cspConnectSrc string
+	if includeTlock {
+		cspConnectSrc = drandCSPConnectSrc()
+	} else {
+		cspConnectSrc = "blob:"
+	}
+	if selfhosted || staticHosted {
+		cspConnectSrc += " 'self'"
+	}
 
-	// Embed personalization data as JSON (or null if not provided)
+	// CSP meta tag
+	headMeta := `<meta name="generator" content="ReMemory {{VERSION}}">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{CSP_NONCE}}' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src blob: data:; connect-src ` + cspConnectSrc + `; form-action 'none';">`
+
+	// Language selector for nav
+	navExtras := `<select class="lang-select" id="lang-select" aria-label="Language">
+        ` + translations.LangSelectOptions() + `
+      </select>`
+
+	// Embed selfhosted config (or null)
+	var selfhostedConfigJSON string
+	if selfhostedConfig != nil {
+		configData, _ := json.Marshal(selfhostedConfig)
+		selfhostedConfigJSON = string(configData)
+	} else {
+		selfhostedConfigJSON = "null"
+	}
+
+	// Embed personalization data as JSON (or null)
 	var personalizationJSON string
 	if personalization != nil {
 		data, _ := json.Marshal(personalization)
@@ -159,12 +140,88 @@ func GenerateRecoverHTML(version, githubURL string, personalization *Personaliza
 	} else {
 		personalizationJSON = "null"
 	}
-	html = strings.Replace(html, "{{PERSONALIZATION_DATA}}", personalizationJSON, 1)
+
+	// Embed README basenames for ZIP extraction
+	readmeNames, _ := json.Marshal(translations.ReadmeBasenames())
+
+	// Select the appropriate app JS variant
+	selectedAppJS := appJS
+	if includeTlock {
+		selectedAppJS = appTlockJS
+	}
+
+	// Build all scripts
+	var scripts strings.Builder
+
+	// Translations
+	// Translations (docs link rewriting + rememoryUpdateUI are handled by core i18n.js)
+	scripts.WriteString(i18nScript(I18nScriptOptions{
+		Component:           "recover",
+		UseNonce:            true,
+		ExtraDeclarations:   `const docsLangs = ` + DocsLanguagesJS() + `;`,
+		DOMContentLoadedPre: i18nRecoverInitJS,
+	}))
+
+	// Personalization data
+	scripts.WriteString(`
+
+  <!-- Personalization data (embedded for this specific friend) -->
+  <script nonce="{{CSP_NONCE}}">
+    window.PERSONALIZATION = ` + personalizationJSON + `;
+    window.README_NAMES = ` + string(readmeNames) + `;
+    window.SELFHOSTED_CONFIG = ` + selfhostedConfigJSON + `;
+  </script>`)
+
+	// Tlock config and drand
+	if includeTlock {
+		scripts.WriteString("\n\n  <!-- Time-lock decryption (conditionally included when tlock is needed) -->\n  " + drandConfigScript())
+	}
+
+	// Application logic
+	scripts.WriteString("\n\n  <!-- Application logic (native JavaScript crypto, no WASM) -->\n  <script nonce=\"{{CSP_NONCE}}\">" + sharedJS + "\n" + selectedAppJS + "</script>")
+
+	// Bundle nav: shown when personalized, replaces the default nav
+	bundleNavHTML := `<div class="nav-links hidden" id="nav-links-bundle">
+        <a href="{{GITHUB_PAGES}}/docs" target="_blank" data-i18n="nav_guide">Guide</a>
+      </div>`
+
+	result := applyLayout(LayoutOptions{
+		Title:      "ReMemory Recovery Tool",
+		HeadMeta:   headMeta,
+		Selfhosted: selfhosted,
+		NavExtras: bundleNavHTML + `
+      ` + navExtras,
+		BeforeContainer: `<!-- Toast notifications container -->
+  <div id="toast-container" class="toast-container" role="alert" aria-live="polite"></div>
+
+  <!-- QR Scanner modal -->
+  <div id="qr-scanner-modal" class="qr-scanner-modal hidden" role="dialog" aria-modal="true" aria-label="QR code scanner">
+    <div class="qr-scanner-header">
+      <span data-i18n="scan_title">Scan a QR code</span>
+      <button id="qr-scanner-close" class="qr-scanner-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="qr-scanner-body">
+      <video id="qr-video" autoplay playsinline></video>
+      <div class="qr-scanner-overlay"></div>
+    </div>
+    <div class="qr-scanner-hint">
+      <span data-i18n="scan_hint">Point your camera at a QR code from a friend's PDF</span>
+    </div>
+  </div>`,
+		Content: content,
+		FooterContent: `<p>ReMemory {{VERSION}}</p>
+    <p>
+      <span data-i18n="need_help">Need help?</span>
+      <a href="{{GITHUB_PAGES}}/docs#recovering" target="_blank">Docs</a> &#xB7;
+      <a href="{{GITHUB_URL}}" target="_blank" data-i18n="download_cli">Download CLI tool from GitHub</a>
+    </p>`,
+		Scripts: scripts.String(),
+	})
 
 	// Apply CSP nonce to all script tags
-	html = applyCSPNonce(html)
+	result = applyCSPNonce(result)
 
-	return html
+	return result
 }
 
 // compressAndEncode gzip-compresses data and returns base64-encoded result.

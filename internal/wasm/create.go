@@ -50,7 +50,6 @@ type CreateBundlesFromArchiveConfig struct {
 	Friends         []FriendInput
 	ArchiveData     []byte
 	Version         string
-	GitHubURL       string
 	Anonymous       bool
 	DefaultLanguage string
 	TlockRound      uint64
@@ -64,7 +63,6 @@ type bundleGenConfig struct {
 	Threshold       int
 	Friends         []FriendInput
 	Version         string
-	GitHubURL       string
 	Anonymous       bool
 	DefaultLanguage string
 	TlockEnabled    bool
@@ -74,32 +72,32 @@ type bundleGenConfig struct {
 // The archiveData may already be tlock-encrypted by JS. This function
 // age-encrypts it (outer layer), optionally prepends the metadata envelope,
 // splits the passphrase, and packages bundles.
-func createBundlesFromArchive(config CreateBundlesFromArchiveConfig) ([]BundleOutput, error) {
+func createBundlesFromArchive(config CreateBundlesFromArchiveConfig) ([]BundleOutput, []byte, error) {
 	if config.ProjectName == "" {
-		return nil, fmt.Errorf("project name is required")
+		return nil, nil, fmt.Errorf("project name is required")
 	}
 	if len(config.Friends) < 2 {
-		return nil, fmt.Errorf("need at least 2 friends, got %d", len(config.Friends))
+		return nil, nil, fmt.Errorf("need at least 2 friends, got %d", len(config.Friends))
 	}
 	if config.Threshold < 2 {
-		return nil, fmt.Errorf("threshold must be at least 2, got %d", config.Threshold)
+		return nil, nil, fmt.Errorf("threshold must be at least 2, got %d", config.Threshold)
 	}
 	if config.Threshold > len(config.Friends) {
-		return nil, fmt.Errorf("threshold (%d) cannot exceed number of friends (%d)", config.Threshold, len(config.Friends))
+		return nil, nil, fmt.Errorf("threshold (%d) cannot exceed number of friends (%d)", config.Threshold, len(config.Friends))
 	}
 	if len(config.ArchiveData) == 0 {
-		return nil, fmt.Errorf("no archive data provided")
+		return nil, nil, fmt.Errorf("no archive data provided")
 	}
 	for i, f := range config.Friends {
 		if f.Name == "" {
-			return nil, fmt.Errorf("friend %d: name is required", i+1)
+			return nil, nil, fmt.Errorf("friend %d: name is required", i+1)
 		}
 	}
 
 	// Generate random passphrase
 	raw, passphrase, err := crypto.GenerateRawPassphrase(crypto.DefaultPassphraseBytes)
 	if err != nil {
-		return nil, fmt.Errorf("generating passphrase: %w", err)
+		return nil, nil, fmt.Errorf("generating passphrase: %w", err)
 	}
 
 	// If tlock metadata provided, wrap tlock-encrypted archive in a container ZIP
@@ -115,7 +113,7 @@ func createBundlesFromArchive(config CreateBundlesFromArchiveConfig) ([]BundleOu
 		}
 		container, err := core.BuildTlockContainer(meta, config.ArchiveData)
 		if err != nil {
-			return nil, fmt.Errorf("building tlock container: %w", err)
+			return nil, nil, fmt.Errorf("building tlock container: %w", err)
 		}
 		dataToEncrypt = container
 	}
@@ -123,26 +121,35 @@ func createBundlesFromArchive(config CreateBundlesFromArchiveConfig) ([]BundleOu
 	// Encrypt with age (outer layer) — always a plain age file
 	var encryptedBuf bytes.Buffer
 	if err := core.Encrypt(&encryptedBuf, bytes.NewReader(dataToEncrypt), passphrase); err != nil {
-		return nil, fmt.Errorf("encrypting archive: %w", err)
+		return nil, nil, fmt.Errorf("encrypting archive: %w", err)
 	}
 
 	manifestData := encryptedBuf.Bytes()
 
-	return bundleFromManifest(manifestData, raw, bundleGenConfig{
+	bundles, err := bundleFromManifest(manifestData, raw, bundleGenConfig{
 		ProjectName:     config.ProjectName,
 		Threshold:       config.Threshold,
 		Friends:         config.Friends,
 		Version:         config.Version,
-		GitHubURL:       config.GitHubURL,
 		Anonymous:       config.Anonymous,
 		DefaultLanguage: config.DefaultLanguage,
 		TlockEnabled:    tlockEnabled,
 	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return bundles, manifestData, nil
 }
 
 // bundleFromManifest generates bundles for all friends given the final
 // encrypted manifest data and the raw passphrase bytes for Shamir splitting.
 func bundleFromManifest(manifestData, raw []byte, config bundleGenConfig) ([]BundleOutput, error) {
+	html.SetVersion(config.Version)
+
+	// Derive GitHub release URL from version for README/PDF
+	githubReleaseURL := fmt.Sprintf("%s/releases/tag/%s", core.GitHubRepo, config.Version)
+
 	manifestChecksum := core.HashBytes(manifestData)
 
 	n := len(config.Friends)
@@ -222,7 +229,7 @@ func bundleFromManifest(manifestData, raw []byte, config bundleGenConfig) ([]Bun
 			personalization.ManifestB64 = base64.StdEncoding.EncodeToString(manifestData)
 		}
 
-		recoverHTML := html.GenerateRecoverHTML(config.Version, config.GitHubURL, personalization)
+		recoverHTML := html.GenerateRecoverHTML(personalization)
 		recoverChecksum := core.HashString(recoverHTML)
 
 		readmeData := bundle.ReadmeData{
@@ -233,7 +240,7 @@ func bundleFromManifest(manifestData, raw []byte, config bundleGenConfig) ([]Bun
 			Threshold:        k,
 			Total:            n,
 			Version:          config.Version,
-			GitHubReleaseURL: config.GitHubURL,
+			GitHubReleaseURL: githubReleaseURL,
 			ManifestChecksum: manifestChecksum,
 			RecoverChecksum:  recoverChecksum,
 			Created:          now,
@@ -251,7 +258,7 @@ func bundleFromManifest(manifestData, raw []byte, config bundleGenConfig) ([]Bun
 			Threshold:        k,
 			Total:            n,
 			Version:          config.Version,
-			GitHubReleaseURL: config.GitHubURL,
+			GitHubReleaseURL: githubReleaseURL,
 			ManifestChecksum: manifestChecksum,
 			RecoverChecksum:  recoverChecksum,
 			Created:          now,
@@ -473,7 +480,7 @@ func createArchiveJS(this js.Value, args []js.Value) any {
 // prepends the metadata envelope when tlock metadata is provided, splits the
 // passphrase via Shamir, and packages personalized bundles.
 // Args: config object with archiveData, projectName, threshold, friends, etc.
-// Returns: { bundles: [...], error: string|null }
+// Returns: { bundles: [...], manifest: Uint8Array, error: string|null }
 func createBundlesFromArchiveJS(this js.Value, args []js.Value) any {
 	if len(args) < 1 {
 		return errorResult("missing config argument")
@@ -485,7 +492,6 @@ func createBundlesFromArchiveJS(this js.Value, args []js.Value) any {
 		ProjectName: configJS.Get("projectName").String(),
 		Threshold:   configJS.Get("threshold").Int(),
 		Version:     configJS.Get("version").String(),
-		GitHubURL:   configJS.Get("githubURL").String(),
 		Anonymous:   configJS.Get("anonymous").Bool(),
 	}
 	if defLang := configJS.Get("defaultLanguage"); !defLang.IsUndefined() && !defLang.IsNull() {
@@ -522,7 +528,7 @@ func createBundlesFromArchiveJS(this js.Value, args []js.Value) any {
 		}
 	}
 
-	bundles, err := createBundlesFromArchive(config)
+	bundles, manifestData, err := createBundlesFromArchive(config)
 	if err != nil {
 		return errorResult(err.Error())
 	}
@@ -538,9 +544,13 @@ func createBundlesFromArchiveJS(this js.Value, args []js.Value) any {
 		}
 	}
 
+	jsManifest := js.Global().Get("Uint8Array").New(len(manifestData))
+	js.CopyBytesToJS(jsManifest, manifestData)
+
 	return js.ValueOf(map[string]any{
-		"bundles": jsBundles,
-		"error":   nil,
+		"bundles":  jsBundles,
+		"manifest": jsManifest,
+		"error":    nil,
 	})
 }
 

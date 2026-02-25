@@ -1,0 +1,17 @@
+{
+  "loading": "Carregando...",
+  "nav_about": "Sobre",
+  "nav_create": "Criar pacotes",
+  "nav_guide": "Guia",
+  "nav_recover": "Recuperar",
+  "error": "Erro: {0}",
+  "error_title": "Algo deu errado",
+  "error_not_ready_title": "Ainda não está pronto",
+  "error_not_ready_guidance": "Por favor, espere um momento e tente novamente.",
+  "action_try_again": "Tentar novamente",
+  "remove": "Remover",
+  "confirm": "Confirmar",
+  "delete": "Eliminar",
+  "deleting": "A eliminar...",
+  "delete_failed": "Falha ao eliminar."
+}

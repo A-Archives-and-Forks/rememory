@@ -22,6 +22,7 @@ This guide walks you through using ReMemory to create encrypted recovery bundles
 - [Revoking Access](#revoking-access)
 - [Advanced: Anonymous Mode](#advanced-anonymous-mode)
 - [Advanced: Multilingual Bundles](#advanced-multilingual-bundles)
+- [Self-Hosting](#self-hosting)
 
 ## Overview
 
@@ -464,10 +465,13 @@ my-recovery-2026/
     │   ├── SHARE-alice.txt
     │   ├── SHARE-bob.txt
     │   └── ...
-    └── bundles/          # Distribution packages
-        ├── bundle-alice.zip
-        ├── bundle-bob.zip
-        └── ...
+    ├── bundles/          # Distribution packages
+    │   ├── bundle-alice.zip
+    │   ├── bundle-bob.zip
+    │   └── ...
+    └── pages/            # Static hosting (with --pages)
+        ├── recover.html
+        └── MANIFEST.age
 ```
 
 ## Commands Reference
@@ -476,8 +480,8 @@ my-recovery-2026/
 |---------|-------------|
 | `rememory init <name>` | Create a new project |
 | `rememory demo [dir]` | Create a demo project with sample data (great for testing!) |
-| `rememory seal` | Encrypt manifest, create shares, and generate bundles |
-| `rememory bundle` | Regenerate bundles (if lost or need updating) |
+| `rememory seal` | Encrypt manifest, create shares, and generate bundles. `--pages` also generates a static hosting directory |
+| `rememory bundle` | Regenerate bundles (if lost or need updating). `--pages` also generates a static hosting directory |
 | `rememory status` | Show project status and summary |
 | `rememory verify` | Verify integrity of sealed files |
 | `rememory verify-bundle <zip>` | Verify a bundle's integrity |
@@ -594,3 +598,19 @@ In the web-based bundle creator (maker.html), each friend entry has a **Bundle l
 - **README.txt**: All instructions, warnings, and section headings
 - **README.pdf**: Same content as README.txt in PDF format
 - **recover.html**: Opens in the friend's language by default (they can still switch)
+
+## Self-Hosting
+
+If you'd rather give friends a URL than a ZIP file, there are two options:
+
+**Static pages** — generate a folder and upload it anywhere:
+
+```bash
+rememory seal --pages
+# or, after sealing:
+rememory bundle --pages
+```
+
+This creates `output/pages/` with `recover.html` and `MANIFEST.age`. Drop that folder on GitHub Pages, Netlify, or any web server — friends visit the URL, and the page fetches the manifest automatically. They still need their shares to decrypt.
+
+**Full server** — run `rememory serve` for bundle creation, storage, and recovery all from a browser. See the [self-hosting guide](selfhosted.md) for setup instructions and deployment examples.

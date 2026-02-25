@@ -540,7 +540,9 @@ Du kannst beim Erstellen der Pakete eine Wartezeit festlegen. Selbst wenn deine 
 
 ### So aktivierst du es
 
-Wechsle im [Paket-Ersteller](maker.html) in den Modus **Erweitert** und aktiviere **Zeitsperre hinzufügen**. Wähle, wie lange die Dateien gesperrt bleiben sollen.
+Wechsle im [Paket-Ersteller](maker.html) in den Modus **Erweitert** und aktiviere **Zeitsperre hinzufügen**. Wähle, wie lange die Dateien gesperrt bleiben sollen — bis zu zwei Jahre.
+
+Das Limit von zwei Jahren ist bewusst gewählt. Zeitsperren hängen davon ab, dass die League of Entropy weiter betrieben wird, und wir halten es nicht für verantwortbar, deine Dateien mit einer längeren Wette auf externe Infrastruktur zu sperren. Wenn du eine längere Dauer brauchst und den Kompromiss verstehst, hat die CLI kein Limit: `rememory seal --timelock 5y`.
 
 <figure class="screenshot">
 <img src="screenshots/de/tlock-setup.png" alt="Zeitsperre-Einrichtung im erweiterten Modus">

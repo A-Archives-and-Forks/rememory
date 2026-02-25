@@ -6,6 +6,9 @@
 /internal/html/assets/shared.js
 /internal/html/assets/tlock-create.js
 /internal/html/assets/tlock-recover.js
+/internal/html/assets/app-selfhosted.js
+/internal/html/assets/create-app-selfhosted.js
+/internal/html/assets/app-tlock.js
 /node_modules/
 /e2e/playwright-report/
 /test-results/
@@ -16,3 +19,4 @@
 /dist
 /maker.html
 .claude
+/rememory-data

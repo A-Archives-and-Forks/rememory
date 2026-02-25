@@ -2,9 +2,14 @@ package core
 
 import (
 	"bytes"
+	"encoding/hex"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/drand/drand/v2/common/chain"
+	"github.com/drand/drand/v2/crypto"
+	tlockhttp "github.com/drand/tlock/networks/http"
 )
 
 func TestRoundForTime(t *testing.T) {
@@ -293,5 +298,114 @@ func TestTlockFutureRoundCannotDecrypt(t *testing.T) {
 
 	if !IsTlockTooEarly(err) {
 		t.Logf("error (not 'too early' but still an error, which is expected): %v", err)
+	}
+}
+
+// TestQuicknetConstantsMatchChainHash validates that our hardcoded quicknet
+// constants (public key, genesis, period, group hash, beacon ID) are
+// internally consistent by recomputing the chain hash and comparing it to
+// QuicknetChainHash. This catches any corrupted or drifted constant without
+// needing network access.
+//
+// Both Go-side TlockEncrypt (via offlineNetwork) and browser-side
+// createOfflineClient() depend on these constants. If they're wrong,
+// encryption produces ciphertext that can never be decrypted.
+func TestQuicknetConstantsMatchChainHash(t *testing.T) {
+	sch, err := crypto.SchemeFromName(QuicknetSchemeID)
+	if err != nil {
+		t.Fatalf("QuicknetSchemeID %q is not a valid scheme: %v", QuicknetSchemeID, err)
+	}
+
+	pubKeyBytes, err := hex.DecodeString(QuicknetPublicKey)
+	if err != nil {
+		t.Fatalf("QuicknetPublicKey is not valid hex: %v", err)
+	}
+
+	pubKey := sch.KeyGroup.Point()
+	if err := pubKey.UnmarshalBinary(pubKeyBytes); err != nil {
+		t.Fatalf("QuicknetPublicKey does not unmarshal to a valid point: %v", err)
+	}
+
+	groupHash, err := hex.DecodeString(QuicknetGroupHash)
+	if err != nil {
+		t.Fatalf("QuicknetGroupHash is not valid hex: %v", err)
+	}
+
+	info := chain.Info{
+		PublicKey:   pubKey,
+		ID:          QuicknetBeaconID,
+		Period:      QuicknetPeriod,
+		Scheme:      QuicknetSchemeID,
+		GenesisTime: QuicknetGenesis,
+		GenesisSeed: groupHash,
+	}
+
+	got := hex.EncodeToString(info.Hash())
+	if got != QuicknetChainHash {
+		t.Errorf("chain hash mismatch: computed %s, want %s\n"+
+			"One or more quicknet constants are wrong.", got, QuicknetChainHash)
+	}
+}
+
+// TestQuicknetConstantsMatchNetwork validates our hardcoded constants against
+// the real drand quicknet network. This catches the case where the drand
+// network has been re-keyed or our constants have drifted from reality.
+func TestQuicknetConstantsMatchNetwork(t *testing.T) {
+	if os.Getenv("REMEMORY_TEST_TLOCK") != "1" {
+		t.Skip("set REMEMORY_TEST_TLOCK=1 to validate constants against the live drand network")
+	}
+
+	network, err := tlockhttp.NewNetwork(DrandEndpoints[0], QuicknetChainHash)
+	if err != nil {
+		t.Fatalf("connecting to drand: %v", err)
+	}
+
+	// Verify scheme
+	if network.Scheme().Name != QuicknetSchemeID {
+		t.Errorf("scheme mismatch: network=%q, constant=%q", network.Scheme().Name, QuicknetSchemeID)
+	}
+
+	// Verify public key
+	networkPubBytes, err := network.PublicKey().MarshalBinary()
+	if err != nil {
+		t.Fatalf("marshaling network public key: %v", err)
+	}
+	if hex.EncodeToString(networkPubBytes) != QuicknetPublicKey {
+		t.Error("public key mismatch between network and QuicknetPublicKey constant")
+	}
+
+	// Verify chain hash itself (proves period, genesis, group hash, beacon ID all match)
+	if network.ChainHash() != QuicknetChainHash {
+		t.Errorf("chain hash mismatch: network=%q, constant=%q", network.ChainHash(), QuicknetChainHash)
+	}
+}
+
+// TestOfflineEncryptProducesValidCiphertext verifies that offline encryption
+// (using embedded constants, no HTTP) produces ciphertext that the network-
+// connected decryptor can successfully decrypt.
+func TestOfflineEncryptProducesValidCiphertext(t *testing.T) {
+	if os.Getenv("REMEMORY_TEST_TLOCK") != "1" {
+		t.Skip("set REMEMORY_TEST_TLOCK=1 to run tlock integration tests (requires internet)")
+	}
+
+	plaintext := []byte("offline encryption integration test")
+
+	// Encrypt offline to a recently-past round
+	pastTime := time.Now().Add(-1 * time.Minute)
+	round := RoundForTime(pastTime)
+
+	var cipherBuf bytes.Buffer
+	if err := TlockEncrypt(&cipherBuf, bytes.NewReader(plaintext), round); err != nil {
+		t.Fatalf("TlockEncrypt (offline): %v", err)
+	}
+
+	// Decrypt via network (proves offline encryption is compatible)
+	var decryptBuf bytes.Buffer
+	if err := TlockDecrypt(&decryptBuf, bytes.NewReader(cipherBuf.Bytes())); err != nil {
+		t.Fatalf("TlockDecrypt: %v", err)
+	}
+
+	if !bytes.Equal(decryptBuf.Bytes(), plaintext) {
+		t.Errorf("decrypted data mismatch: got %q, want %q", decryptBuf.Bytes(), plaintext)
 	}
 }

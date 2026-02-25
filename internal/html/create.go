@@ -1,6 +1,8 @@
 package html
 
 import (
+	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/eljojo/rememory/internal/core"
@@ -41,57 +43,122 @@ const tlockPanelHTML = `<!-- Advanced: time lock (shown when Advanced tab is act
         </div>
       </div>`
 
+// MakerHTMLOptions holds optional parameters for GenerateMakerHTML.
+type MakerHTMLOptions struct {
+	Selfhosted       bool              // Use selfhosted JS variant with server integration
+	SelfhostedConfig *SelfhostedConfig // Config injected into the HTML for selfhosted mode
+}
+
+// SelfhostedConfig holds configuration passed to the selfhosted frontend.
+type SelfhostedConfig struct {
+	MaxManifestSize int    `json:"maxManifestSize"`       // Maximum MANIFEST.age size the server accepts
+	HasManifest     bool   `json:"hasManifest"`           // Whether a manifest currently exists on the server
+	ManifestURL     string `json:"manifestURL,omitempty"` // URL to fetch manifest from (set by server or static pages)
+}
+
 // GenerateMakerHTML creates the complete maker.html with all assets embedded.
 // createWASMBytes is the create.wasm binary (runs in browser for bundle creation).
 // Note: recover.html uses native JavaScript crypto, not WASM.
-// version is the rememory version string.
-// githubURL is the URL to download CLI binaries.
-// noTlock omits tlock-js from the maker (disables time-lock UI).
-func GenerateMakerHTML(createWASMBytes []byte, version, githubURL string, noTlock bool) string {
-	html := makerHTMLTemplate
+func GenerateMakerHTML(createWASMBytes []byte, opts MakerHTMLOptions) string {
+	// Process content template
+	content := makerHTMLTemplate
+	content = strings.Replace(content, "{{TLOCK_TABS_HTML}}", tlockTabsHTML, 1)
+	content = strings.Replace(content, "{{TLOCK_PANEL_HTML}}", tlockPanelHTML, 1)
 
-	// Embed translations
-	html = strings.Replace(html, "{{TRANSLATIONS}}", translations.GetTranslationsJS("maker"), 1)
-
-	// Embed language picker (generated from translations.LangNames)
-	html = strings.Replace(html, "{{LANG_OPTIONS}}", translations.LangSelectOptions(), 1)
-	html = strings.Replace(html, "{{LANG_DETECT}}", translations.LangDetectJS(), 1)
-
-	// Embed styles
-	html = strings.Replace(html, "{{STYLES}}", stylesCSS, 1)
-
-	// Embed wasm_exec.js
-	html = strings.Replace(html, "{{WASM_EXEC}}", wasmExecJS, 1)
-
-	// Embed shared.js + create-app.js
-	html = strings.Replace(html, "{{CREATE_APP_JS}}", sharedJS+"\n"+createAppJS, 1)
-
-	// Include tlock-create.js and tlock UI unless explicitly disabled
-	if !noTlock {
-		html = strings.Replace(html, "{{TLOCK_JS}}",
-			drandConfigScript()+`<script nonce="{{CSP_NONCE}}">`+tlockCreateJS+`</script>`, 1)
-		html = strings.Replace(html, "{{CSP_CONNECT_SRC}}", drandCSPConnectSrc(), 1)
-		html = strings.Replace(html, "{{TLOCK_TABS_HTML}}", tlockTabsHTML, 1)
-		html = strings.Replace(html, "{{TLOCK_PANEL_HTML}}", tlockPanelHTML, 1)
-	} else {
-		html = strings.Replace(html, "{{TLOCK_JS}}", "", 1)
-		html = strings.Replace(html, "{{CSP_CONNECT_SRC}}", "blob:", 1)
-		html = strings.Replace(html, "{{TLOCK_TABS_HTML}}", "", 1)
-		html = strings.Replace(html, "{{TLOCK_PANEL_HTML}}", "", 1)
+	// Build CSP connect-src
+	cspConnectSrc := "blob:"
+	if opts.Selfhosted {
+		cspConnectSrc += " 'self'"
 	}
 
-	// Embed create.wasm as gzip-compressed base64 (this runs in the browser)
-	createWASMB64 := compressAndEncode(createWASMBytes)
-	html = strings.Replace(html, "{{WASM_BASE64}}", createWASMB64, 1)
+	// CSP meta tag
+	headMeta := `<meta name="generator" content="ReMemory {{VERSION}}">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{CSP_NONCE}}' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src blob: data:; connect-src ` + cspConnectSrc + `; form-action 'none';">`
 
-	// Replace version and GitHub URLs
-	html = strings.Replace(html, "{{VERSION}}", version, -1)
-	html = strings.Replace(html, "{{GITHUB_REPO}}", core.GitHubRepo, -1)
-	html = strings.Replace(html, "{{GITHUB_PAGES}}", core.GitHubPages, -1)
-	html = strings.Replace(html, "{{GITHUB_URL}}", githubURL, -1)
+	// Language selector for nav
+	navExtras := `<select class="lang-select" id="lang-select">
+        ` + translations.LangSelectOptions() + `
+      </select>`
+
+	// Selfhosted config
+	var selfhostedConfigJSON string
+	if opts.Selfhosted && opts.SelfhostedConfig != nil {
+		configData, _ := json.Marshal(opts.SelfhostedConfig)
+		selfhostedConfigJSON = string(configData)
+	} else {
+		selfhostedConfigJSON = "null"
+	}
+
+	// Max total file size
+	var maxTotalFileSize string
+	if opts.Selfhosted && opts.SelfhostedConfig != nil {
+		maxTotalFileSize = strconv.Itoa(opts.SelfhostedConfig.MaxManifestSize)
+	} else {
+		maxTotalFileSize = strconv.Itoa(core.MaxTotalSize)
+	}
+
+	// Select app JS variant
+	appScript := createAppJS
+	if opts.Selfhosted {
+		appScript = createAppSelfhostedJS
+	}
+
+	// Embed create.wasm as gzip-compressed base64
+	createWASMB64 := compressAndEncode(createWASMBytes)
+
+	// Build all scripts
+	var scripts strings.Builder
+
+	// Translations (docs link rewriting + rememoryUpdateUI are handled by core i18n.js)
+	scripts.WriteString(i18nScript(I18nScriptOptions{
+		Component:         "maker",
+		UseNonce:          true,
+		ExtraDeclarations: `const docsLangs = ` + DocsLanguagesJS() + `;`,
+	}))
+
+	// WASM runtime
+	scripts.WriteString("\n\n  <!-- Go WASM runtime -->\n  <script nonce=\"{{CSP_NONCE}}\">" + wasmExecJS + "</script>")
+
+	// WASM binary and config
+	scripts.WriteString(`
+
+  <!-- Embedded WASM binary (base64) -->
+  <script nonce="{{CSP_NONCE}}">
+    window.WASM_BINARY = "` + createWASMB64 + `";
+    window.VERSION = "{{VERSION}}";
+    window.SELFHOSTED_CONFIG = ` + selfhostedConfigJSON + `;
+    window.MAX_TOTAL_FILE_SIZE = ` + maxTotalFileSize + `;
+  </script>`)
+
+	// Tlock encryption config
+	scripts.WriteString("\n\n  <!-- Time-lock encryption (conditionally included) -->\n  " + drandConfigScript())
+
+	// Application logic
+	scripts.WriteString("\n\n  <!-- Application logic -->\n  <script nonce=\"{{CSP_NONCE}}\">" + sharedJS + "\n" + appScript + "</script>")
+
+	// WASM loader
+	scripts.WriteString("\n\n  <!-- Load WASM from embedded gzip-compressed binary -->\n  <script nonce=\"{{CSP_NONCE}}\">\n    " + wasmLoaderJS + "\n  </script>")
+
+	// Nav-hiding script: remove the Create link from nav (current page)
+	navHideScript := `
+  <script nonce="{{CSP_NONCE}}">document.querySelector('#nav-links-main a[href="maker.html"]')?.remove();</script>`
+
+	// Assemble page using layout
+	result := applyLayout(LayoutOptions{
+		Title:      "\xF0\x9F\xA7\xA0 ReMemory - Create Recovery Bundles",
+		HeadMeta:   headMeta,
+		PageStyles: makerCSS,
+		Selfhosted: opts.Selfhosted,
+		NavExtras:  navExtras,
+		BeforeContainer: `<!-- Toast notifications container -->
+  <div id="toast-container" class="toast-container" role="alert" aria-live="polite"></div>`,
+		Content:       content,
+		FooterContent: `<p><span data-i18n="works_offline">Works completely offline</span></p><p class="version">{{VERSION}}</p>`,
+		Scripts:       navHideScript + scripts.String(),
+	})
 
 	// Apply CSP nonce to all script tags
-	html = applyCSPNonce(html)
+	result = applyCSPNonce(result)
 
-	return html
+	return result
 }

@@ -19,6 +19,7 @@ export interface GeneratedBundle {
 export interface BundleCreateResult {
   error?: string;
   bundles?: GeneratedBundle[];
+  manifest?: Uint8Array;
 }
 
 export interface ArchiveCreateResult {
@@ -32,7 +33,6 @@ export interface BundleFromArchiveConfig {
   friends: FriendInput[];
   archiveData: Uint8Array;
   version: string;
-  githubURL: string;
   anonymous?: boolean;
   defaultLanguage?: string;
   tlockRound?: number;
@@ -93,37 +93,6 @@ export interface TlockContainerMeta {
   chain: string;
 }
 
-// RememoryTlock is the interface exposed on window.rememoryTlock.
-// tlock-create.ts and tlock-recover.ts each expose a subset; both are valid.
-export interface RememoryTlock {
-  // Creation-side (tlock-create.ts)
-  encrypt?(plaintext: Uint8Array, roundNumber: number): Promise<Uint8Array>;
-  encryptForDate?(plaintext: Uint8Array, targetDate: Date): Promise<{
-    ciphertext: Uint8Array;
-    round: number;
-    unlockDate: Date;
-  }>;
-  computeTimelockDate?(value: number, unit: string): Date | null;
-  roundForTime?(target: Date): number;
-  timeForRound?(round: number): Date;
-
-  // Recovery-side (tlock-recover.ts)
-  decrypt?(ciphertext: Uint8Array): Promise<Uint8Array>;
-  isRoundAvailable?(roundNumber: number): Promise<boolean>;
-  waitAndDecrypt?(
-    meta: TlockContainerMeta,
-    ciphertext: Uint8Array,
-    onTick: (unlockDate: Date) => void,
-    onReady: (archive: Uint8Array) => void,
-    onError: (err: Error) => void,
-  ): void;
-  stopWaiting?(): void;
-  formatUnlockDate?(date: Date, t: TranslationFunction): { text: string; relative: boolean };
-
-  // Shared
-  formatTimelockDate(date: Date): string;
-}
-
 // ============================================
 // UI State Types
 // ============================================
@@ -153,6 +122,16 @@ export interface CreationState {
   tlockEnabled: boolean;
   tlockValue: number;
   tlockUnit: string;
+}
+
+// ============================================
+// Selfhosted Config (injected by server at render time)
+// ============================================
+
+export interface SelfhostedConfig {
+  maxManifestSize: number;
+  hasManifest: boolean;
+  manifestURL?: string;  // URL to fetch manifest from (set by server or static pages)
 }
 
 // ============================================
@@ -207,16 +186,17 @@ declare global {
     // Personalization data (embedded in recover.html)
     PERSONALIZATION?: PersonalizationData | null;
 
-    // Tlock API (time-lock encryption, conditionally included)
-    rememoryTlock?: RememoryTlock;
-
     // Embedded constants
     WASM_BINARY?: string;
     VERSION?: string;
-    GITHUB_URL?: string;
+    MAX_TOTAL_FILE_SIZE?: number;
 
     // Localized README filenames (embedded in recover.html)
     README_NAMES?: string[];
+
+    // Selfhosted mode (only present in selfhosted builds, eliminated in static builds)
+    rememoryLoadManifest?: (data: Uint8Array, name?: string) => void;
+    SELFHOSTED_CONFIG?: SelfhostedConfig | null;
 
     // Go WASM runtime (used by maker.html)
     Go: new () => GoInstance;

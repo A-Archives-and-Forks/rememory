@@ -1,10 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import AdmZip from 'adm-zip';
 import {
   getRememoryBin,
   CreationPage,
+  RecoveryPage,
   generateStandaloneHTML
 } from './helpers';
 
@@ -68,6 +70,71 @@ test.describe('Browser Bundle Creation Tool', () => {
 
     // With 3 friends, threshold options should include 2 and 3
     await creation.expectThresholdOptions(['2 of 3', '3 of 3']);
+  });
+
+  test('threshold is visible and selectable', async ({ page }) => {
+    const creation = new CreationPage(page, htmlPath);
+
+    await creation.open();
+
+    // Threshold is hidden until 2 friends have names
+    await creation.expectThresholdHidden();
+
+    // Fill in both names — threshold appears
+    await creation.setFriend(0, 'Alice');
+    await creation.expectThresholdHidden();
+    await creation.setFriend(1, 'Bob');
+    await creation.expectThresholdVisible();
+    await creation.expectThresholdOptions(['2 of 2']);
+
+    // Add a third friend and verify the threshold can be changed
+    await creation.addFriend();
+    await creation.setFriend(2, 'Carol');
+    await creation.expectThresholdVisible();
+    await creation.expectThresholdOptions(['2 of 3', '3 of 3']);
+    await creation.setThreshold(3);
+
+    // Remove a friend — threshold should still be visible with 2 named friends
+    await creation.removeFriend(2);
+    await creation.expectThresholdVisible();
+    await creation.expectThresholdOptions(['2 of 2']);
+  });
+
+  test('step numbers and button reflect progress', async ({ page }) => {
+    const creation = new CreationPage(page, htmlPath);
+
+    await creation.open();
+
+    // Initial state: steps 2 and 3 are pending, button is secondary
+    await creation.expectStepPending(2);
+    await creation.expectStepPending(3);
+    await creation.expectGenerateSecondary();
+
+    // Fill in friend names — step 2 unlocks, step 3 still pending (no files)
+    await creation.setFriend(0, 'Alice', 'alice@test.com');
+    await creation.setFriend(1, 'Bob', 'bob@test.com');
+    await creation.expectStepActive(2);
+    await creation.expectStepPending(3);
+    await creation.expectGenerateSecondary();
+
+    // Add files — step 3 unlocks, button turns green
+    const testFiles = creation.createTestFiles(tmpDir, 'btn-test');
+    await creation.addFiles(testFiles);
+    await creation.expectStepActive(2);
+    await creation.expectStepActive(3);
+    await creation.expectGeneratePrimary();
+
+    // Clear a friend name — steps 2 and 3 go pending, button goes secondary
+    await creation.setFriend(0, '', '');
+    await creation.expectStepPending(2);
+    await creation.expectStepPending(3);
+    await creation.expectGenerateSecondary();
+
+    // Restore the name — everything unlocks again
+    await creation.setFriend(0, 'Alice', 'alice@test.com');
+    await creation.expectStepActive(2);
+    await creation.expectStepActive(3);
+    await creation.expectGeneratePrimary();
   });
 
   test('validates required fields', async ({ page }) => {
@@ -164,68 +231,6 @@ friends:
     await creation.expectFileCount(4);
   });
 
-  test('full bundle creation workflow', async ({ page }, testInfo) => {
-    // Increase timeout for WASM-heavy operations (especially Firefox)
-    testInfo.setTimeout(120000);
-    const creation = new CreationPage(page, htmlPath);
-
-    await creation.open();
-
-    // Fill in friends
-    await creation.setFriend(0, 'Alice', 'alice@test.com');
-    await creation.setFriend(1, 'Bob', 'bob@test.com');
-
-    // Add a third friend
-    await creation.addFriend();
-    await creation.setFriend(2, 'Carol', 'carol@test.com');
-
-    // Set threshold to 2
-    await creation.setThreshold(2);
-
-    // Add test files
-    const testFiles = creation.createTestFiles(tmpDir);
-    await creation.addFiles(testFiles);
-
-    // Generate button should now be enabled
-    await creation.expectGenerateEnabled();
-
-    // Generate bundles
-    await creation.generate();
-
-    // Should show completion
-    await creation.expectGenerationComplete();
-
-    // Should show bundles for each friend
-    await creation.expectBundleCount(3);
-    await creation.expectBundleFor('Alice');
-    await creation.expectBundleFor('Bob');
-    await creation.expectBundleFor('Carol');
-  });
-
-  test('generated bundles are valid', async ({ page }, testInfo) => {
-    // Increase timeout for WASM-heavy operations (especially Firefox)
-    testInfo.setTimeout(120000);
-    const creation = new CreationPage(page, htmlPath);
-
-    await creation.open();
-
-    // Quick setup - name is the only required field, contact is optional
-    await creation.setFriend(0, 'Alice', 'alice@test.com');
-    await creation.setFriend(1, 'Bob', 'bob@test.com');
-
-    const testFiles = creation.createTestFiles(tmpDir);
-    await creation.addFiles(testFiles);
-
-    // Generate bundles
-    await creation.generate();
-    await creation.expectGenerationComplete();
-
-    // Download a bundle and verify it can be opened
-    const bundleData = await creation.downloadBundle(0);
-    expect(bundleData).toBeTruthy();
-    expect(bundleData.length).toBeGreaterThan(1000); // Should be substantial
-  });
-
   test('language switching works', async ({ page }) => {
     const creation = new CreationPage(page, htmlPath);
 
@@ -251,20 +256,50 @@ friends:
     await creation.expectPageTitle('Criar Pacotes de Recuperação');
   });
 
-  test('minimum 2 friends required', async ({ page }) => {
+  test('nav guide link updates for languages with translated docs', async ({ page }) => {
     const creation = new CreationPage(page, htmlPath);
 
     await creation.open();
-    creation.onDialog('dismiss');
 
-    // Should start with 2 friends
-    await creation.expectFriendCount(2);
+    const guideLink = page.locator('#nav-links-main a[data-i18n="nav_guide"]');
 
-    // Try to remove a friend - should fail (can't go below 2)
+    // English: docs.html
+    await creation.setLanguage('en');
+    await expect(guideLink).toHaveAttribute('href', 'docs.html');
+
+    // German has translated docs — link should point to docs.de.html
+    await creation.setLanguage('de');
+    await expect(guideLink).toHaveAttribute('href', 'docs.de.html');
+
+    // Spanish has translated docs
+    await creation.setLanguage('es');
+    await expect(guideLink).toHaveAttribute('href', 'docs.es.html');
+
+    // Portuguese does NOT have translated docs — should stay docs.html
+    await creation.setLanguage('pt');
+    await expect(guideLink).toHaveAttribute('href', 'docs.html');
+
+    // Back to English
+    await creation.setLanguage('en');
+    await expect(guideLink).toHaveAttribute('href', 'docs.html');
+  });
+
+  test('minimum 2 friends required — remove clears fields instead', async ({ page }) => {
+    const creation = new CreationPage(page, htmlPath);
+
+    await creation.open();
+
+    // Fill in both friends
+    await creation.setFriend(0, 'Alice', 'alice@test.com');
+    await creation.setFriend(1, 'Bob', 'bob@test.com');
+
+    // Try to remove a friend — should clear fields, not remove the row
     await creation.removeFriend(1);
-
-    // Should still have 2 friends
     await creation.expectFriendCount(2);
+    await creation.expectFriendData(1, '', '');
+
+    // First friend should be untouched
+    await creation.expectFriendData(0, 'Alice', 'alice@test.com');
   });
 
   test('anonymous mode toggle hides friends list', async ({ page }) => {
@@ -403,5 +438,60 @@ friends:
 
     // Should have successfully imported 2 friends
     await creation.expectFriendCount(2);
+  });
+
+  test('browser-created bundles can be recovered @cross-browser', async ({ page }, testInfo) => {
+    testInfo.setTimeout(120000);
+    const creation = new CreationPage(page, htmlPath);
+
+    await creation.open();
+
+    // Set up friends
+    await creation.setFriend(0, 'Alice', 'alice@test.com');
+    await creation.setFriend(1, 'Bob', 'bob@test.com');
+
+    // Add test files
+    const testFiles = creation.createTestFiles(tmpDir, 'roundtrip');
+    await creation.addFiles(testFiles);
+
+    // Generate bundles via WASM
+    await creation.generate();
+    await creation.expectGenerationComplete();
+    await creation.expectBundleCount(2);
+
+    // Download both bundles
+    const aliceData = await creation.downloadBundle(0);
+    const bobData = await creation.downloadBundle(1);
+    expect(aliceData).toBeTruthy();
+    expect(bobData).toBeTruthy();
+
+    // Save and extract bundles
+    const bundlesDir = path.join(tmpDir, 'roundtrip-bundles');
+    fs.mkdirSync(bundlesDir, { recursive: true });
+
+    const aliceZipPath = path.join(bundlesDir, 'bundle-alice.zip');
+    fs.writeFileSync(aliceZipPath, aliceData!);
+    const aliceZip = new AdmZip(aliceZipPath);
+    const aliceDir = path.join(bundlesDir, 'alice');
+    aliceZip.extractAllTo(aliceDir, true);
+
+    const bobZipPath = path.join(bundlesDir, 'bundle-bob.zip');
+    fs.writeFileSync(bobZipPath, bobData!);
+    const bobZip = new AdmZip(bobZipPath);
+    const bobDir = path.join(bundlesDir, 'bob');
+    bobZip.extractAllTo(bobDir, true);
+
+    // Open Alice's recover.html (share + manifest pre-loaded)
+    const recovery = new RecoveryPage(page, aliceDir);
+    await recovery.open();
+    await recovery.expectShareCount(1);
+
+    // Add Bob's share — triggers auto-recovery
+    await recovery.addShares(bobDir);
+
+    // Recovery should complete
+    await recovery.expectRecoveryComplete();
+    await recovery.expectFileCount(2);
+    await recovery.expectDownloadVisible();
   });
 });

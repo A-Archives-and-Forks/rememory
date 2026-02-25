@@ -1,9 +1,13 @@
-// drand.ts — Drand quicknet chain parameters and client setup.
+// drand.ts — Drand quicknet chain parameters and offline client.
 // All values come from Go via window.DRAND_CONFIG, injected at HTML generation time.
 // The single source of truth is internal/core/tlock_common.go.
+//
+// This module contains only the config and the offline client — no HTTP imports.
+// create-app.ts imports createOfflineClient() for encryption (zero network calls).
+// tlock-recover.ts builds its own HTTP client from drand-client for decryption;
+// it's only bundled into the network variant (app-tlock.js) via __TLOCK__ guards.
 
-import { HttpCachingChain, HttpChainClient } from 'drand-client';
-import type { ChainClient, ChainOptions } from 'drand-client';
+import type { ChainClient } from 'drand-client';
 
 interface DrandConfig {
   chainHash: string;
@@ -11,6 +15,9 @@ interface DrandConfig {
   period: number;
   publicKey: string;
   endpoints: string[];
+  schemeID: string;
+  groupHash: string;
+  beaconID: string;
 }
 
 const cfg = (window as any).DRAND_CONFIG as DrandConfig;
@@ -22,28 +29,34 @@ export const QUICKNET_CHAIN_HASH = cfg.chainHash;
 export const QUICKNET_GENESIS = cfg.genesis;
 export const QUICKNET_PERIOD = cfg.period;
 
-// Create a drand chain client, trying endpoints in order.
-export async function createClient(): Promise<ChainClient> {
-  const options: ChainOptions = {
-    disableBeaconVerification: false,
-    noCache: false,
-    chainVerificationParams: {
-      chainHash: cfg.chainHash,
-      publicKey: cfg.publicKey,
-    },
+// Re-export the full config for tlock-recover.ts, which builds its own HTTP client.
+export const DRAND_CONFIG = cfg;
+
+// Create an offline drand client using only embedded chain config.
+// timelockEncrypt only calls chain().info() for the public key and scheme —
+// it never fetches beacons — so this works without any network access.
+export function createOfflineClient(): ChainClient {
+  const info = {
+    public_key: cfg.publicKey,
+    period: cfg.period,
+    genesis_time: cfg.genesis,
+    hash: cfg.chainHash,
+    groupHash: cfg.groupHash,
+    schemeID: cfg.schemeID,
+    metadata: { beaconID: cfg.beaconID },
   };
 
-  let lastError: Error | undefined;
-  for (const endpoint of cfg.endpoints) {
-    try {
-      const url = `${endpoint}/${cfg.chainHash}`;
-      const chain = new HttpCachingChain(url, options);
-      const client = new HttpChainClient(chain, options);
-      await chain.info();
-      return client;
-    } catch (e) {
-      lastError = e instanceof Error ? e : new Error(String(e));
-    }
-  }
-  throw new Error(`Could not connect to drand: ${lastError?.message ?? 'all endpoints failed'}`);
+  return {
+    chain() {
+      return {
+        info: () => Promise.resolve(info),
+      };
+    },
+    get(_round: number) {
+      return Promise.reject(new Error('Offline client cannot fetch beacons'));
+    },
+    latest() {
+      return Promise.reject(new Error('Offline client cannot fetch beacons'));
+    },
+  } as ChainClient;
 }

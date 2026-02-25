@@ -540,7 +540,9 @@ You can set a waiting period when creating bundles. Even if your friends combine
 
 ### How to Enable
 
-In the [bundle creator](maker.html), switch to **Advanced** mode and check **Add a time lock**. Choose how long the files should stay locked.
+In the [bundle creator](maker.html), switch to **Advanced** mode and check **Add a time lock**. Choose how long the files should stay locked — up to two years.
+
+The two-year limit is deliberate. Time locks depend on the League of Entropy continuing to operate, and we don't think it's responsible to lock your files behind a longer bet on external infrastructure. If you need a longer duration and understand the trade-off, the CLI has no cap: `rememory seal --timelock 5y`.
 
 <figure class="screenshot">
 <img src="screenshots/en/tlock-setup.png" alt="Time lock setup in Advanced mode">
@@ -569,3 +571,9 @@ The League of Entropy produces a new cryptographic value every 3 seconds. Each v
 When you create a time-locked bundle, the archive is encrypted to a specific future value. The key to open it doesn't exist yet. It will come from the network when that moment arrives.
 
 For a deeper look at the cryptography behind this, see the [drand timelock encryption documentation](https://docs.drand.love/docs/timelock-encryption/).
+
+## Self-Hosting {#selfhosted}
+
+ReMemory can also run as a web app on your own server using `rememory serve`. The server provides the same creation and recovery tools through a browser. Friends only need their share — the encrypted archive is served automatically.
+
+This is an advanced option for people who already run a homelab or want a shared web UI. The offline bundles remain the primary way to use ReMemory and work without any server. See the [self-hosting guide](https://github.com/eljojo/rememory/blob/main/docs/selfhosted.md) on GitHub for details.

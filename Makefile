@@ -10,13 +10,25 @@ build: wasm
 
 # Compile TypeScript to JavaScript (bundled as IIFE for inline use)
 # Uses --loader:.txt=text to bundle BIP39 wordlists as strings
+#
+# Network-posture model:
+#   shared.js        — no network, used by all pages
+#   app.js           — __TLOCK__=false: offline recovery, no tlock/drand code
+#   app-tlock.js     — __TLOCK__=true:  recovery with tlock (HTTP to drand for decryption)
+#   create-app.js    — __SELFHOSTED__=false: bundle creation, tlock encryption is offline
+#   create-app-selfhosted.js — __SELFHOSTED__=true: + server integration
+#
+# tlock-create.ts is gone — encryption functions are inline in create-app.ts
+# using the offline drand client (zero HTTP calls).
+# tlock-recover.ts is imported by app.ts behind __TLOCK__ guards.
 ts:
 	@echo "Compiling TypeScript..."
 	esbuild internal/html/assets/src/shared.ts --bundle --format=iife --global-name=_shared --outfile=internal/html/assets/shared.js --target=es2020
-	esbuild internal/html/assets/src/app.ts --bundle --format=iife --outfile=internal/html/assets/app.js --target=es2020 --loader:.txt=text --conditions=zbar-inlined
-	esbuild internal/html/assets/src/create-app.ts --bundle --format=iife --outfile=internal/html/assets/create-app.js --target=es2020
-	esbuild internal/html/assets/src/tlock-create.ts --bundle --format=iife --outfile=internal/html/assets/tlock-create.js --target=es2020
-	esbuild internal/html/assets/src/tlock-recover.ts --bundle --format=iife --outfile=internal/html/assets/tlock-recover.js --target=es2020
+	esbuild internal/html/assets/src/app.ts --bundle --format=iife --define:__TLOCK__=false --minify-syntax --outfile=internal/html/assets/app.js --target=es2020 --loader:.txt=text --conditions=zbar-inlined
+	esbuild internal/html/assets/src/app.ts --bundle --format=iife --define:__TLOCK__=true --minify-syntax --outfile=internal/html/assets/app-tlock.js --target=es2020 --loader:.txt=text --conditions=zbar-inlined
+	esbuild internal/html/assets/src/create-app.ts --bundle --format=iife --define:__SELFHOSTED__=false --minify-syntax --outfile=internal/html/assets/create-app.js --target=es2020
+	@echo "Compiling selfhosted TypeScript variant..."
+	esbuild internal/html/assets/src/create-app.ts --bundle --format=iife --define:__SELFHOSTED__=true --minify-syntax --outfile=internal/html/assets/create-app-selfhosted.js --target=es2020
 
 # Build WASM module for maker.html (bundle creation tool)
 # Note: recover.html uses native JavaScript crypto, no WASM needed
@@ -68,7 +80,7 @@ lint:
 clean:
 	rm -f $(BINARY) coverage.out coverage.html
 	rm -f internal/html/assets/recover.wasm internal/html/assets/create.wasm
-	rm -f internal/html/assets/app.js internal/html/assets/create-app.js internal/html/assets/shared.js internal/html/assets/types.js internal/html/assets/tlock-create.js internal/html/assets/tlock-recover.js
+	rm -f internal/html/assets/app.js internal/html/assets/app-tlock.js internal/html/assets/create-app.js internal/html/assets/shared.js internal/html/assets/types.js internal/html/assets/create-app-selfhosted.js
 	rm -rf dist/ man/
 	go clean -testcache
 
@@ -90,7 +102,7 @@ serve: html
 # Run demo: clean, build, and create a demo project
 demo: build
 	rm -rf demo-recovery
-	./$(BINARY) demo
+	./$(BINARY) demo --pages
 	open demo-recovery/output/bundles/bundle-alice.zip
 
 # Run demo with a 5-minute time lock

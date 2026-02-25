@@ -1,0 +1,279 @@
+    /* Hide the shared nav on the landing page — it has its own header */
+    .landing .site-nav { display: none; }
+
+    a {
+      color: var(--dusty-blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Landing page specific styles - personal tool feel */
+    .intro {
+      background: var(--paper-light);
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(46,42,38,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .intro .intro-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .intro h1 {
+      font-size: 1.75rem;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .intro .summary {
+      font-size: 1.05rem;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+
+    .intro .links {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.95rem;
+    }
+
+/* How It Works - Animated Diagram */
+    .how-it-works {
+      background: var(--paper-light);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(46,42,38,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .how-it-works h2 {
+      font-size: 1.25rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .how-it-works .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .dataflow-container {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      margin-bottom: 0.75rem;
+    }
+
+    #dataflow-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .dataflow-caption {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-style: italic;
+    }
+
+    /* Fallback for reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .dataflow-container {
+        display: none;
+      }
+      .how-it-works .reduced-motion-fallback {
+        display: block;
+      }
+    }
+
+    .reduced-motion-fallback {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+    }
+
+    .reduced-motion-fallback .flow-text {
+      font-size: 1rem;
+      line-height: 2;
+    }
+
+    /* What this is / isn't */
+    .what-is {
+      background: var(--paper-light);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(46,42,38,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .what-is h2 {
+      font-size: 1.25rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .what-is-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .what-is-col h3 {
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .what-is-col ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.8;
+    }
+
+    .what-is-col ul li::before {
+      margin-right: 0.5rem;
+    }
+
+    .what-is-col.is-col ul li::before {
+      content: "\2022";
+      color: var(--sage);
+    }
+
+    .what-is-col.isnt-col ul li::before {
+      content: "\2022";
+      color: var(--text-muted);
+    }
+
+    /* Try it section */
+    .try-it {
+      background: var(--paper-light);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(46,42,38,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .try-it h2 {
+      font-size: 1.25rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .try-it ol {
+      padding-left: 1.25rem;
+      color: var(--text);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+
+    .try-it ol li {
+      margin-bottom: 0.5rem;
+    }
+
+.try-it .note {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    /* Trust section */
+    .trust {
+      background: var(--sand);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .trust h2 {
+      font-size: 1.1rem;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .trust ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+
+    .trust ul li::before {
+      content: "\2192";
+      margin-right: 0.5rem;
+      color: var(--text-muted);
+    }
+
+/* Background note */
+    .background {
+      background: var(--paper-light);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(46,42,38,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .background h2 {
+      font-size: 1.1rem;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .background p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin: 0 0 0.75rem;
+    }
+
+    .background p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Language picker */
+    .lang-picker {
+      display: flex;
+      align-items: center;
+    }
+
+    .lang-picker select {
+      font-size: 0.85rem;
+      padding: 0.2rem 0.4rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--paper-light);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .intro h1 {
+        font-size: 1.5rem;
+      }
+
+      .what-is-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .dataflow-container {
+        height: 220px;
+      }
+    }

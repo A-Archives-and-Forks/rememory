@@ -20,15 +20,16 @@ import (
 
 // Config holds configuration for bundle generation.
 type Config struct {
-	Version          string // Tool version (e.g., "v1.0.0")
-	GitHubReleaseURL string // URL to GitHub release for CLI download
-	RecoveryURL      string // Optional: base URL for QR code (e.g. "https://example.com/recover.html")
-	NoEmbedManifest  bool   // If true, do not embed MANIFEST.age in recover.html even when small enough
-	TlockEnabled     bool   // If true, bundles include tlock-js for time-lock decryption
+	Version         string // Tool version (e.g., "v1.0.0")
+	RecoveryURL     string // Optional: base URL for QR code (e.g. "https://example.com/recover.html")
+	NoEmbedManifest bool   // If true, do not embed MANIFEST.age in recover.html even when small enough
+	TlockEnabled    bool   // If true, bundles include tlock-js for time-lock decryption
 }
 
 // GenerateAll creates bundles for all friends in the project.
 func GenerateAll(p *project.Project, cfg Config) error {
+	html.SetVersion(cfg.Version)
+
 	if p.Sealed == nil {
 		return fmt.Errorf("project must be sealed before generating bundles")
 	}
@@ -51,6 +52,9 @@ func GenerateAll(p *project.Project, cfg Config) error {
 		return fmt.Errorf("reading manifest: %w", err)
 	}
 	manifestChecksum := core.HashBytes(manifestData)
+
+	// Derive GitHub release URL from version for README/PDF
+	githubReleaseURL := fmt.Sprintf("%s/releases/tag/%s", core.GitHubRepo, cfg.Version)
 
 	// Generate bundle for each friend
 	for i, friend := range p.Friends {
@@ -100,7 +104,7 @@ func GenerateAll(p *project.Project, cfg Config) error {
 			personalization.ManifestB64 = base64.StdEncoding.EncodeToString(manifestData)
 		}
 
-		recoverHTML := html.GenerateRecoverHTML(cfg.Version, cfg.GitHubReleaseURL, personalization)
+		recoverHTML := html.GenerateRecoverHTML(personalization)
 		recoverChecksum := core.HashString(recoverHTML)
 
 		bundlePath := filepath.Join(bundlesDir, fmt.Sprintf("bundle-%s.zip", core.SanitizeFilename(friend.Name)))
@@ -119,7 +123,7 @@ func GenerateAll(p *project.Project, cfg Config) error {
 			RecoverHTML:      recoverHTML,
 			RecoverChecksum:  recoverChecksum,
 			Version:          cfg.Version,
-			GitHubReleaseURL: cfg.GitHubReleaseURL,
+			GitHubReleaseURL: githubReleaseURL,
 			SealedAt:         p.Sealed.At,
 			Anonymous:        p.Anonymous,
 			RecoveryURL:      cfg.RecoveryURL,

@@ -540,7 +540,9 @@ Vous pouvez définir un délai d'attente lors de la création des enveloppes. M�
 
 ### Comment l'activer
 
-Dans le [créateur d'enveloppes](maker.html), passez en mode **Avancé** et cochez **Ajouter un verrou temporel**. Choisissez combien de temps les fichiers doivent rester verrouillés.
+Dans le [créateur d'enveloppes](maker.html), passez en mode **Avancé** et cochez **Ajouter un verrou temporel**. Choisissez combien de temps les fichiers doivent rester verrouillés — jusqu'à deux ans.
+
+La limite de deux ans est délibérée. Les verrous temporels dépendent du fonctionnement continu de la League of Entropy, et nous ne pensons pas qu'il soit responsable de verrouiller vos fichiers sur un pari plus long concernant une infrastructure externe. Si vous avez besoin d'une durée plus longue et comprenez le compromis, la CLI n'a pas de limite : `rememory seal --timelock 5y`.
 
 <figure class="screenshot">
 <img src="screenshots/fr/tlock-setup.png" alt="Configuration du verrouillage temporel en mode Avancé">

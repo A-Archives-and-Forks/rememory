@@ -1,0 +1,9 @@
+{
+  "home_intro": "Dateien, beschützt von Menschen deines Vertrauens, hier aufbewahrt für wenn sie gebraucht werden.",
+  "home_about_link": "Über ReMemory",
+  "home_empty": "Noch keine Wiederherstellungspakete vorhanden.",
+  "home_create_bundle": "Paket erstellen",
+  "home_admin_password": "Admin-Passwort",
+  "home_enter_password": "Gib das Admin-Passwort ein.",
+  "home_pieces_needed": "{0} von {1} Teilen zur Wiederherstellung nötig"
+}

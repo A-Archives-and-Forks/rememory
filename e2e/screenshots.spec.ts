@@ -13,7 +13,7 @@
  *   REMEMORY_BIN=./rememory npx playwright test e2e/screenshots.spec.ts --project=chromium
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page } from './fixtures';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';

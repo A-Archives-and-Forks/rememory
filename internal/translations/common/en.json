@@ -1,0 +1,17 @@
+{
+  "loading": "Loading...",
+  "nav_about": "About",
+  "nav_create": "Create Bundles",
+  "nav_guide": "Guide",
+  "nav_recover": "Recover",
+  "error": "Error: {0}",
+  "error_title": "Something went wrong",
+  "error_not_ready_title": "Not ready yet",
+  "error_not_ready_guidance": "Please wait a moment, then try again.",
+  "action_try_again": "Try again",
+  "remove": "Remove",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "delete_failed": "Delete failed."
+}

@@ -1,0 +1,64 @@
+    /* Hide nav and footer on setup page */
+    .setup .site-nav,
+    .setup footer { display: none; }
+
+    body.setup {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    body.setup .container {
+      max-width: 400px;
+    }
+    .setup-card {
+      background: var(--paper-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+    }
+    .setup-card h1 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .setup-card p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .setup-card label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.375rem;
+    }
+    .setup-card input[type="password"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+    .setup-card input[type="password"]:focus {
+      outline: none;
+      border-color: var(--sage);
+      box-shadow: 0 0 0 2px rgba(85, 115, 90, 0.2);
+    }
+    .setup-card button {
+      width: 100%;
+      padding: 0.625rem;
+      background: var(--sage);
+      color: var(--paper-light);
+      border: none;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .setup-card button:hover { background: var(--sage-dark); }
+    .setup-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .setup-card .error { color: var(--error); font-size: 0.8125rem; margin-top: 0.5rem; }
+    .setup-card .hint { color: var(--text-muted); font-size: 0.8125rem; margin-top: 1rem; line-height: 1.4; }
