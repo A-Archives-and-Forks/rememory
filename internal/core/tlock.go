@@ -9,7 +9,6 @@ import (
 	"io"
 	"time"
 
-	"filippo.io/age/armor"
 	chain "github.com/drand/drand/v2/common"
 	"github.com/drand/drand/v2/crypto"
 	"github.com/drand/kyber"
@@ -26,21 +25,15 @@ func IsTlockTooEarly(err error) bool {
 // TlockEncrypt encrypts src to a specific drand round number using tlock.
 // Encryption is offline — it uses only the embedded chain parameters
 // (public key, scheme) and never contacts the drand network.
-// The output is ASCII-armored age format for compatibility with tlock-js
-// (which expects armored input in timelockDecrypt). The Go TlockDecrypt
-// handles both armored and binary age format, so this is safe.
+// The output is raw age binary (not armored).
 func TlockEncrypt(dst io.Writer, src io.Reader, roundNumber uint64) error {
 	network, err := offlineNetwork()
 	if err != nil {
 		return fmt.Errorf("tlock encrypt: %w", err)
 	}
 
-	aw := armor.NewWriter(dst)
-	if err := tlock.New(network).Encrypt(aw, src, roundNumber); err != nil {
+	if err := tlock.New(network).Encrypt(dst, src, roundNumber); err != nil {
 		return fmt.Errorf("tlock encrypt: %w", err)
-	}
-	if err := aw.Close(); err != nil {
-		return fmt.Errorf("tlock encrypt (armor): %w", err)
 	}
 
 	return nil

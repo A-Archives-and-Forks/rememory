@@ -104,7 +104,6 @@ func TestStaticHTMLNoUnexpectedURLs(t *testing.T) {
 		"https://api.drand.sh",
 		"https://api2.drand.sh",
 		"https://api3.drand.sh",
-		"https://pl-us.testnet.drand.sh",
 		"https://drand.cloudflare.com",
 		"https://docs.drand.love",
 
@@ -119,19 +118,17 @@ func TestStaticHTMLNoUnexpectedURLs(t *testing.T) {
 		"https://cryptomator.org",            // docs: recommended encrypted vault tool
 		"https://veracrypt.fr",               // docs: recommended encrypted vault tool
 
-		// vendored JS: comments in bundled tlock/noble-curves/drand-client code
-		"https://github.com/golang/go/issues",               // wasm_exec.js workaround comment
-		"https://github.com/paulmillr/noble",                // noble-secp256k1 library reference
-		"https://github.com/hyperledger/aries-framework-go", // BBS+ signature issue reference
-		"https://eprint.iacr.org",                           // cryptography research papers
-		"https://ethresear.ch",                              // BLS signature verification paper
-		"https://www.rfc-editor.org",                        // RFC errata references
-		"https://datatracker.ietf.org",                      // RFC 9380 hash-to-curve
-		"https://crypto.stackexchange.com",                  // elliptic curve Q&A
-		"https://bitcoin.stackexchange.com",                 // transaction script parsing Q&A
-		"https://feross.org",                                // ieee754 library license attribution
-		"https://hyperelliptic.org",                         // EFD curve operation formulas
-		"https://developer.mozilla.org",                     // Web Crypto API JSDoc references
+		// vendored JS: comments in bundled noble-curves/age-encryption/tlock-js code
+		"https://github.com/golang/go/issues", // wasm_exec.js workaround comment
+		"https://github.com/paulmillr/noble",  // noble-secp256k1 library reference
+		"https://eprint.iacr.org",             // cryptography research papers
+		"https://ethresear.ch",                // BLS signature verification paper
+		"https://www.rfc-editor.org",          // RFC errata references
+		"https://datatracker.ietf.org",        // RFC 9380 hash-to-curve
+		"https://crypto.stackexchange.com",    // elliptic curve Q&A
+		"https://feross.org",                  // ieee754 library license attribution
+		"https://hyperelliptic.org",           // EFD curve operation formulas
+		"https://developer.mozilla.org",       // Web Crypto API JSDoc references
 
 		// index.html: Shamir's Secret Sharing article (per-language translations)
 		"https://en.wikipedia.org",

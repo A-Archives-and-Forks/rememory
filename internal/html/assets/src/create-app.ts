@@ -14,9 +14,8 @@ import type {
 // which would bloat the bundle with unused HTTP client code.
 import { createTimelockEncrypter } from 'tlock-js/drand/timelock-encrypter';
 import { encryptAge } from 'tlock-js/age/age-encrypt-decrypt';
-import { encodeArmor } from 'tlock-js/age/armor';
 import { Buffer } from 'buffer';
-import { createOfflineClient, QUICKNET_GENESIS, QUICKNET_PERIOD } from './drand';
+import { createOfflineClient, QUICKNET_GENESIS, QUICKNET_PERIOD, formatTimelockDate } from './drand';
 
 // Translation function and language state (defined in HTML)
 declare const t: TranslationFunction;
@@ -697,14 +696,12 @@ declare const __SELFHOSTED__: boolean;
   }
 
   // Encrypt plaintext for a specific round number (offline — no HTTP).
-  // Reimplements timelockEncrypt using submodule imports to avoid the
-  // tlock-js barrel which re-exports HTTP client code.
+  // Returns raw age binary (not armored).
   async function tlockEncrypt(plaintext: Uint8Array, roundNumber: number): Promise<Uint8Array> {
     const client = createOfflineClient();
     const encrypter = createTimelockEncrypter(client, roundNumber);
-    const agePayload = await encryptAge(Buffer.from(plaintext), encrypter);
-    const armored = encodeArmor(agePayload);
-    return new TextEncoder().encode(armored);
+    const raw = await encryptAge(Buffer.from(plaintext), encrypter);
+    return Buffer.from(raw, 'binary');
   }
 
   // Encrypt plaintext for a target date, returning everything the caller needs.
@@ -741,14 +738,6 @@ declare const __SELFHOSTED__: boolean;
     }
     if (target.getTime() - now.getTime() > MAX_TIMELOCK_MS) return null;
     return target;
-  }
-
-  // Format a tlock unlock date for display. Shows time if within 24 hours, date-only otherwise.
-  function formatTimelockDate(date: Date): string {
-    const hoursUntil = (date.getTime() - Date.now()) / 3600000;
-    return (hoursUntil > 0 && hoursUntil < 24)
-      ? date.toLocaleString()
-      : date.toLocaleDateString();
   }
 
   function setupTimelock(): void {

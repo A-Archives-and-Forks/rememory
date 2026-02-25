@@ -4,67 +4,27 @@
 // In Phase 2 it's imported by app.ts behind __TLOCK__ guards, producing
 // app-tlock.js (with HTTP code) vs app.js (without).
 
-import { timelockDecrypt } from 'tlock-js';
-import { roundTime, HttpCachingChain, HttpChainClient } from 'drand-client';
-import type { ChainClient, ChainOptions } from 'drand-client';
-import { DRAND_CONFIG } from './drand';
+import { timelockDecrypt } from './tlock';
+import { DRAND_CONFIG, formatTimelockDate } from './drand';
 import type { TlockContainerMeta, TranslationFunction } from './types';
 
-// Create an HTTP drand chain client for recovery, trying endpoints in order.
-// This is the only path that makes network calls — needed for timelockDecrypt
-// which must fetch the actual beacon signature for the target round.
-async function createClient(): Promise<ChainClient> {
-  const cfg = DRAND_CONFIG;
-  const options: ChainOptions = {
-    disableBeaconVerification: false,
-    noCache: false,
-    chainVerificationParams: {
-      chainHash: cfg.chainHash,
-      publicKey: cfg.publicKey,
-    },
-  };
-
-  let lastError: Error | undefined;
-  for (const endpoint of cfg.endpoints) {
-    try {
-      const url = `${endpoint}/${cfg.chainHash}`;
-      const chain = new HttpCachingChain(url, options);
-      const client = new HttpChainClient(chain, options);
-      await chain.info();
-      return client;
-    } catch (e) {
-      lastError = e instanceof Error ? e : new Error(String(e));
-    }
-  }
-  throw new Error(`Could not connect to drand: ${lastError?.message ?? 'all endpoints failed'}`);
-}
+// Re-export for app.ts, which accesses it via the tlock-recover module.
+export { formatTimelockDate };
 
 // Decrypt tlock ciphertext by fetching the beacon
 export async function decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
-  const client = await createClient();
-  const armored = new TextDecoder().decode(ciphertext);
-  const decrypted = await timelockDecrypt(armored, client);
-  return new Uint8Array(decrypted);
+  return timelockDecrypt(ciphertext, DRAND_CONFIG);
 }
 
 // Check if a round's beacon is available (time has passed)
 export async function isRoundAvailable(roundNumber: number): Promise<boolean> {
   try {
-    const client = await createClient();
-    const info = await client.chain().info();
-    const rt = roundTime(info, roundNumber);
-    return rt <= Date.now();
+    const cfg = DRAND_CONFIG;
+    const roundTime = cfg.genesis + (roundNumber - 1) * cfg.period;
+    return roundTime * 1000 <= Date.now();
   } catch {
     return false;
   }
-}
-
-// Format a tlock unlock date for display. Shows time if within 24 hours, date-only otherwise.
-export function formatTimelockDate(date: Date): string {
-  const hoursUntil = (date.getTime() - Date.now()) / 3600000;
-  return (hoursUntil > 0 && hoursUntil < 24)
-    ? date.toLocaleString()
-    : date.toLocaleDateString();
 }
 
 // Format an unlock date for the waiting UI, with relative time for near-future dates.

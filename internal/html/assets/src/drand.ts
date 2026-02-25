@@ -32,6 +32,14 @@ export const QUICKNET_PERIOD = cfg.period;
 // Re-export the full config for tlock-recover.ts, which builds its own HTTP client.
 export const DRAND_CONFIG = cfg;
 
+// Format a tlock unlock date for display. Shows time if within 24 hours, date-only otherwise.
+export function formatTimelockDate(date: Date): string {
+  const hoursUntil = (date.getTime() - Date.now()) / 3600000;
+  return (hoursUntil > 0 && hoursUntil < 24)
+    ? date.toLocaleString()
+    : date.toLocaleDateString();
+}
+
 // Create an offline drand client using only embedded chain config.
 // timelockEncrypt only calls chain().info() for the public key and scheme —
 // it never fetches beacons — so this works without any network access.
