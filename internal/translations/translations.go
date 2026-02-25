@@ -20,6 +20,9 @@ var readmeFS embed.FS
 //go:embed index/*.json
 var indexFS embed.FS
 
+//go:embed home/*.json
+var homeFS embed.FS
+
 //go:embed common/*.json
 var commonFS embed.FS
 
@@ -302,6 +305,7 @@ var componentsWithCommon = map[string]bool{
 	"recover": true,
 	"maker":   true,
 	"index":   true,
+	"home":    true,
 }
 
 func fsForComponent(component string) *embed.FS {
@@ -314,6 +318,8 @@ func fsForComponent(component string) *embed.FS {
 		return &readmeFS
 	case "index":
 		return &indexFS
+	case "home":
+		return &homeFS
 	case "common":
 		return &commonFS
 	default:

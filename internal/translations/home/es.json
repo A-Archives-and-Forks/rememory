@@ -1,0 +1,9 @@
+{
+  "home_intro": "Archivos protegidos por personas de tu confianza, guardados aquí para cuando se necesiten.",
+  "home_about_link": "Acerca de ReMemory",
+  "home_empty": "Aún no hay kits de recuperación.",
+  "home_create_bundle": "Crear un kit",
+  "home_admin_password": "Contraseña de administrador",
+  "home_enter_password": "Ingresa la contraseña de administrador.",
+  "home_pieces_needed": "{0} de {1} partes necesarias para recuperar"
+}

@@ -161,7 +161,7 @@ func TestRenderTOC(t *testing.T) {
 }
 
 func TestGenerateDocsHTMLEnglish(t *testing.T) {
-	html := GenerateDocsHTML("en")
+	html := GenerateDocsHTML("en", false)
 
 	// Should be valid HTML
 	if !strings.Contains(html, "<!DOCTYPE html>") {
@@ -175,7 +175,7 @@ func TestGenerateDocsHTMLEnglish(t *testing.T) {
 	for _, placeholder := range []string{
 		"{{STYLES}}", "{{LANG}}", "{{PAGE_TITLE}}", "{{PAGE_SUBTITLE}}",
 		"{{NAV_HOME}}", "{{NAV_CREATE}}", "{{TOC_TITLE}}", "{{TOC}}",
-		"{{DOCS_CONTENT}}", "{{FOOTER_SOURCE}}", "{{FOOTER_HOME}}",
+		"{{DOCS_CONTENT}}", "{{FOOTER_SOURCE}}", "{{FOOTER_HOME}}", "{{LOGO_HREF}}",
 	} {
 		if strings.Contains(html, placeholder) {
 			t.Errorf("leftover placeholder: %s", placeholder)
@@ -195,7 +195,7 @@ func TestGenerateDocsHTMLEnglish(t *testing.T) {
 }
 
 func TestGenerateDocsHTMLSpanish(t *testing.T) {
-	html := GenerateDocsHTML("es")
+	html := GenerateDocsHTML("es", false)
 
 	if !strings.Contains(html, `<html lang="es">`) {
 		t.Error("should have lang=es")
@@ -210,7 +210,7 @@ func TestGenerateDocsHTMLSpanish(t *testing.T) {
 }
 
 func TestGenerateDocsHTMLFallback(t *testing.T) {
-	html := GenerateDocsHTML("xx")
+	html := GenerateDocsHTML("xx", false)
 
 	// Should fall back to English
 	if !strings.Contains(html, `<html lang="en">`) {

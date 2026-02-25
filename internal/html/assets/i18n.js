@@ -31,8 +31,11 @@ function setLanguage(lang) {
     el.placeholder = t(key);
   });
 
-  // Update page title
-  document.title = t('title');
+  // Update page title (only if the component provides one)
+  var translatedTitle = t('title');
+  if (translatedTitle && translatedTitle !== 'title') {
+    document.title = translatedTitle;
+  }
 
   // Update docs links to point to the correct language variant
   if (typeof docsLangs !== 'undefined') {

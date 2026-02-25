@@ -80,7 +80,7 @@ func renderDocsLangPicker(currentLang string) string {
 
 // GenerateDocsHTML creates the documentation page HTML from Markdown content.
 // lang is the language code (e.g. "en", "es"). Falls back to "en" if not found.
-func GenerateDocsHTML(lang string) string {
+func GenerateDocsHTML(lang string, selfhosted bool) string {
 	if lang == "" {
 		lang = "en"
 	}
@@ -131,6 +131,13 @@ func GenerateDocsHTML(lang string) string {
 	result = strings.Replace(result, "{{FOOTER_SOURCE}}", fm.FooterSource, 1)
 	result = strings.Replace(result, "{{FOOTER_DOWNLOAD}}", fm.FooterDL, 1)
 	result = strings.Replace(result, "{{FOOTER_HOME}}", fm.FooterHome, 1)
+
+	// Logo href: "/" for selfhosted, "about.html" for static
+	logoHref := "about.html"
+	if selfhosted {
+		logoHref = "/"
+	}
+	result = strings.Replace(result, "{{LOGO_HREF}}", logoHref, -1)
 
 	// Content
 	result = strings.Replace(result, "{{TOC}}", tocHTML, 1)

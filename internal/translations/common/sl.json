@@ -9,5 +9,9 @@
   "error_not_ready_title": "Še ni pripravljeno",
   "error_not_ready_guidance": "Prosim, počakajte trenutek in poskusite znova.",
   "action_try_again": "Poskusi znova",
-  "remove": "Odstrani"
+  "remove": "Odstrani",
+  "confirm": "Potrdi",
+  "delete": "Izbriši",
+  "deleting": "Brisanje...",
+  "delete_failed": "Brisanje ni uspelo."
 }

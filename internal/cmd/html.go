@@ -58,7 +58,7 @@ func runHTML(cmd *cobra.Command, args []string) error {
 
 	case "docs":
 		// Generate docs.html (documentation page)
-		content = html.GenerateDocsHTML(htmlLang)
+		content = html.GenerateDocsHTML(htmlLang, false)
 
 	case "recover":
 		// Generate generic recover.html (without personalization)
@@ -125,14 +125,14 @@ func runHTMLSite(cmd *cobra.Command) error {
 		{"about.html", aboutHTML},
 		{"index.html", aboutHTML}, // Copy for GitHub Pages root URL
 		{"maker.html", html.GenerateMakerHTML(createWASM, html.MakerHTMLOptions{})},
-		{"docs.html", html.GenerateDocsHTML("en")},
+		{"docs.html", html.GenerateDocsHTML("en", false)},
 		{"recover.html", html.GenerateRecoverHTML(nil, html.RecoverHTMLOptions{NoTlock: noTlock})},
 	}
 
 	// Add translated docs
 	for _, lang := range html.DocsLanguages() {
 		name := fmt.Sprintf("docs.%s.html", lang)
-		files = append(files, file{name, html.GenerateDocsHTML(lang)})
+		files = append(files, file{name, html.GenerateDocsHTML(lang, false)})
 	}
 
 	for _, f := range files {

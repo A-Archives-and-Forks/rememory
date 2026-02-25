@@ -18,8 +18,8 @@ function render() {
   if (BUNDLES.length === 0) {
     el.innerHTML =
       '<div class="empty-state">' +
-        '<p>No recovery bundles here yet.</p>' +
-        '<a href="maker.html" class="btn btn-primary">Create a bundle</a>' +
+        '<p>' + escapeHtml(t('home_empty')) + '</p>' +
+        '<a href="maker.html" class="btn btn-primary">' + escapeHtml(t('home_create_bundle')) + '</a>' +
       '</div>';
     return;
   }
@@ -30,21 +30,23 @@ function render() {
       '<div class="bundle-card" data-id="' + escapeHtml(b.id) + '">' +
         '<div class="bundle-date">' + formatDate(b.created) + '</div>' +
         '<div class="bundle-meta">' +
-          b.threshold + ' of ' + b.total + ' pieces needed to recover' +
+          escapeHtml(t('home_pieces_needed', b.threshold, b.total)) +
         '</div>' +
         '<div class="bundle-actions">' +
-          '<a href="recover.html?id=' + encodeURIComponent(b.id) + '">Recover</a>' +
-          '<button type="button" class="delete-toggle" onclick="toggleDelete(this)">Delete</button>' +
+          '<a href="recover.html?id=' + encodeURIComponent(b.id) + '">' + escapeHtml(t('nav_recover')) + '</a>' +
+          '<button type="button" class="delete-toggle" onclick="toggleDelete(this)">' + escapeHtml(t('delete')) + '</button>' +
         '</div>' +
         '<div class="delete-form">' +
-          '<input type="password" placeholder="Admin password" class="delete-password">' +
-          '<button type="button" onclick="deleteBundle(this)" class="delete-btn">Confirm</button>' +
+          '<input type="password" placeholder="' + escapeHtml(t('home_admin_password')) + '" class="delete-password">' +
+          '<button type="button" onclick="deleteBundle(this)" class="delete-btn">' + escapeHtml(t('confirm')) + '</button>' +
           '<div class="delete-error"></div>' +
         '</div>' +
       '</div>';
   });
   el.innerHTML = html;
 }
+
+window.rememoryUpdateUI = render;
 
 function toggleDelete(btn) {
   var card = btn.closest('.bundle-card');
@@ -62,12 +64,12 @@ function deleteBundle(btn) {
   var errorEl = card.querySelector('.delete-error');
 
   if (!password) {
-    errorEl.textContent = 'Enter the admin password.';
+    errorEl.textContent = t('home_enter_password');
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = 'Deleting...';
+  btn.textContent = t('deleting');
   errorEl.textContent = '';
 
   fetch('/api/bundle', {
@@ -76,14 +78,14 @@ function deleteBundle(btn) {
     body: JSON.stringify({ id: id, password: password }),
   })
   .then(function(resp) {
-    if (!resp.ok) return resp.text().then(function(t) { throw new Error(t || 'Delete failed.'); });
+    if (!resp.ok) return resp.text().then(function(txt) { throw new Error(txt || t('delete_failed')); });
     BUNDLES = BUNDLES.filter(function(b) { return b.id !== id; });
     render();
   })
   .catch(function(err) {
     errorEl.textContent = err.message;
     btn.disabled = false;
-    btn.textContent = 'Confirm';
+    btn.textContent = t('confirm');
   });
 }
 

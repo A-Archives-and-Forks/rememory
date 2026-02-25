@@ -92,7 +92,7 @@ func (s *Server) handleAbout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) docsHandler(lang string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, html.GenerateDocsHTML(lang))
+		fmt.Fprint(w, html.GenerateDocsHTML(lang, true))
 	}
 }
 

@@ -17,7 +17,7 @@ func staticPages() map[string]string {
 		"maker.html":   GenerateMakerHTML(wasmStub, MakerHTMLOptions{}),
 		"recover.html": GenerateRecoverHTML(nil),
 		"about.html":   GenerateIndexHTML(false),
-		"docs.html":    GenerateDocsHTML("en"),
+		"docs.html":    GenerateDocsHTML("en", false),
 	}
 }
 

@@ -80,14 +80,14 @@
   "tlock_in_minutes": "čez {0} minut",
   "tlock_in_one_minute": "čez približno minuto",
   "tlock_decrypting": "Odklepanje časovne zaklepa...",
-  "tlock_waiting_title": "Časovna zaklep je aktivna",
+  "tlock_waiting_title": "Časovni zaklep je aktiven",
   "tlock_waiting_message": "Odpre se {0}. Počakajte ali se vrnite kasneje.",
   "tlock_waiting_message_relative": "Odpre se {0}. Počakajte.",
   "tlock_learn_more": "Kaj je to?",
   "tlock_no_support": "Ta arhiv je časovno zaklenjen. Uporabite recover.html iz svojega svežnja, da ga odprete.",
-  "tlock_error_title": "Preverjanje časovnega zakljepa ni uspelo",
-  "tlock_error_message": "Vaši deli so delovali, a časovnega zakljepa ni bilo mogoče preveriti. To navadno pomeni, da je bila omrežna zahteva blokirana.",
+  "tlock_error_title": "Preverjanje časovnega zaklepa ni uspelo",
+  "tlock_error_message": "Vaši deli so delovali, a časovnega zaklepa ni bilo mogoče preveriti. To navadno pomeni, da je bila omrežna zahteva blokirana.",
   "tlock_error_guidance": "Poskusite z drugim brskalnikom (Chrome deluje najbolje), ali prenesite zaklenjen arhiv in uporabite CLI orodje.",
-  "tlock_error_status": "Preverjanje časovnega zakljepa ni uspelo. Vaši deli so pravilni — poskusite z drugim brskalnikom.",
+  "tlock_error_status": "Preverjanje časovnega zaklepa ni uspelo. Vaši deli so pravilni — poskusite z drugim brskalnikom.",
   "tlock_download_archive": "Prenesi zaklenjen arhiv"
 }

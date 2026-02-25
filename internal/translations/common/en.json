@@ -9,5 +9,9 @@
   "error_not_ready_title": "Not ready yet",
   "error_not_ready_guidance": "Please wait a moment, then try again.",
   "action_try_again": "Try again",
-  "remove": "Remove"
+  "remove": "Remove",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "delete_failed": "Delete failed."
 }

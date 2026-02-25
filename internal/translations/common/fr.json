@@ -9,5 +9,9 @@
   "error_not_ready_title": "Pas encore prêt",
   "error_not_ready_guidance": "Veuillez patienter un moment, puis réessayez.",
   "action_try_again": "Réessayer",
-  "remove": "Supprimer"
+  "remove": "Supprimer",
+  "confirm": "Confirmer",
+  "delete": "Supprimer",
+  "deleting": "Suppression...",
+  "delete_failed": "Échec de la suppression."
 }
