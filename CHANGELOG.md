@@ -4,10 +4,12 @@ All notable changes to ReMemory are documented here.
 
 ## Unreleased
 
+## v0.0.16 — 2026-02-25
+
 - **Time-delayed recovery** — You can now set a waiting period when creating bundles. Even if your friends combine their pieces early, the files stay locked until the date you chose. Uses the [League of Entropy](https://www.cloudflare.com/en-ca/leagueofentropy/) — a distributed randomness beacon run by organizations around the world, not a single company. This is experimental: recovery requires a brief internet connection, and relies on the beacon continuing to operate. CLI: `rememory seal --timelock 30d`. Also available in the web maker under "Advanced options."
 - **Self-hosted web UI** — ReMemory can now run as a small web server on your home network. `rememory serve` starts a local instance where you can create bundles, store manifests on the server, and recover from any browser on the network. A home page shows all stored bundles at a glance, with one-click recovery for each. Designed for families or small groups who want a shared place to manage their recovery kits without relying on external services. See the [self-hosted guide](docs/selfhosted.md) for setup.
 - **Static pages for easy hosting** — `rememory seal --pages` (or `bundle --pages`, `demo --pages`) now outputs a `output/pages/` directory containing `recover.html` and `MANIFEST.age`. Drop that folder on GitHub Pages, Netlify, or any static host and friends can visit the URL to recover — the page fetches the manifest automatically. No server needed.
-- **Translated guide and landing page** — The guide (`docs.html`) is now available in Spanish, German, and French, each as a standalone page with its own language picker. The landing page (`index.html`) now auto-detects your browser language and switches between all seven supported languages — English, Spanish, German, French, Portuguese, Slovenian, and Traditional Chinese.
+- **Translated guide and landing page** — The guide (`docs.html`) is now available in Spanish, German, and French, each as a standalone page with its own language picker. The landing page (`about.html`) now auto-detects your browser language and switches between all seven supported languages — English, Spanish, German, French, Portuguese, Slovenian, and Traditional Chinese.
 - **Offline by design, verified by default** — ReMemory has always worked without the internet, but now the test suite proves it. Every test runs with network access blocked. The handful that genuinely need a connection — like checking the time-lock beacon — declare exactly which hosts they're allowed to reach. If any part of the app tries to phone home, the test fails. Time-lock encryption now works fully offline too (recovery still requires internet).
 
 ## v0.0.15 — 2026-02-21
