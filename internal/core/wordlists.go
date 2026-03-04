@@ -55,6 +55,8 @@ type wordListSpec struct {
 // Official BIP39 lists: https://github.com/bitcoin/bips/tree/master/bip-0039
 // German: https://github.com/dys2p/wordlists-de (unofficial, widely used)
 // Slovenian: https://github.com/StellarStoic/BIP39_Exotica (unofficial)
+// Catalan source: https://github.com/1ma/diceware-cat/blob/master/cat-wordlist-ascii.txt
+// Used as source to generate a BIP39-compatible Catalan list.
 var wordListSpecs = []wordListSpec{
 	{LangEN, "wordlists/english.txt", "https://github.com/bitcoin/bips/blob/ed7af6ae7e80c90bcfc69b3936073505e2fc2503/bip-0039/english.txt", "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda"},
 	{LangES, "wordlists/spanish.txt", "https://github.com/bitcoin/bips/blob/ed7af6ae7e80c90bcfc69b3936073505e2fc2503/bip-0039/spanish.txt", "46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b"},
@@ -63,7 +65,7 @@ var wordListSpecs = []wordListSpec{
 	{LangSL, "wordlists/slovenian.txt", "https://github.com/StellarStoic/BIP39_Exotica/8a5c0d93be825fab837dd293c94c635d6a39aa70/main/WRDL/nonStandard/slovenian.txt", "bdc73f14501843be9ae38fea61d6070298df4a83c67a8710e9755c557880467a"},
 	{LangPT, "wordlists/portuguese.txt", "https://github.com/bitcoin/bips/blob/ed7af6ae7e80c90bcfc69b3936073505e2fc2503/bip-0039/portuguese.txt", "2685e9c194c82ae67e10ba59d9ea5345a23dc093e92276fc5361f6667d79cd3f"},
 	{LangZH_TW, "wordlists/chinese_traditional.txt", "https://github.com/bitcoin/bips/blob/7d77befd2b14359b9386fc1f9fb15f82d418fb34/bip-0039/chinese_traditional.txt", "417b26b3d8500a4ae3d59717d7011952db6fc2fb84b807f3f94ac734e89c1b5f"},
-	{LangCA, "wordlists/spanish.txt", "https://github.com/bitcoin/bips/blob/ed7af6ae7e80c90bcfc69b3936073505e2fc2503/bip-0039/spanish.txt", "46846a5a0139d1e3cb77293e521c2865f7bcdb82c44e8d0a06a2cd0ecba48c0b"},
+	{LangCA, "wordlists/catalan.txt", "https://github.com/1ma/diceware-cat/blob/master/cat-wordlist-ascii.txt", "be159d519390a5de8d9fb90421ea758643ddfb69f439651f5d81c10910151e56"},
 }
 
 var (
