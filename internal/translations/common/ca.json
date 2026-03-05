@@ -1,0 +1,17 @@
+{
+  "loading": "Carregant...",
+  "nav_about": "Quant a",
+  "nav_create": "Crear kits",
+  "nav_guide": "Manual",
+  "nav_recover": "Recuperar",
+  "error": "Error: {0}",
+  "error_title": "Alguna cosa ha anat malament",
+  "error_not_ready_title": "Encara no està llest",
+  "error_not_ready_guidance": "Si us plau, espera un moment i torna-ho a intentar.",
+  "action_try_again": "Torna-ho a intentar",
+  "remove": "Eliminar",
+  "confirm": "Confirmar",
+  "delete": "Eliminar",
+  "deleting": "Eliminant...",
+  "delete_failed": "Error al eliminar."
+}

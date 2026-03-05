@@ -49,6 +49,7 @@
   "recovery_words_title_english": "TUS {0} PALABRAS CLAVE (INGLÉS):",
   "recovery_words_hint": "Lee estas palabras a la persona que te ayuda a recuperar, o escríbelas\nen la herramienta de recuperación en recover.html.\nTambién puedes subir este archivo completo.",
   "recovery_words_dual_hint": "Cualquiera de las dos listas sirve para la recuperación. Codifican los mismos datos.",
+  "lang_ca": "catalán",
   "lang_en": "inglés",
   "lang_es": "español",
   "lang_fr": "francés",

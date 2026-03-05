@@ -49,6 +49,7 @@
   "recovery_words_title_english": "YOUR {0} RECOVERY WORDS (ENGLISH):",
   "recovery_words_hint": "Read these words to the person helping you, or type them\ninto the recovery tool at recover.html.",
   "recovery_words_dual_hint": "Either list works for recovery. They encode the same data.",
+  "lang_ca": "Catalan",
   "lang_en": "English",
   "lang_es": "Spanish",
   "lang_fr": "French",

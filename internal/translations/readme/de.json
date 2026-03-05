@@ -49,6 +49,7 @@
   "recovery_words_title_english": "DEINE {0} WIEDERHERSTELLUNGSWÖRTER (ENGLISCH):",
   "recovery_words_hint": "Lies diese Wörter der Person vor, die dir hilft, oder gib sie\nin das Wiederherstellungstool bei recover.html ein.",
   "recovery_words_dual_hint": "Beide Listen funktionieren zur Wiederherstellung. Sie kodieren dieselben Daten.",
+  "lang_ca": "Katalanisch",
   "lang_en": "Englisch",
   "lang_es": "Spanisch",
   "lang_fr": "Französisch",

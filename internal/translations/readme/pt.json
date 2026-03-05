@@ -49,6 +49,7 @@
   "recovery_words_title_english": "SUAS {0} PALAVRAS DE RECUPERAÇÃO (INGLÊS):",
   "recovery_words_hint": "Leia estas palavras para a pessoa que está ajudando você a recuperar, ou digite-as\nna ferramenta de recuperação em recover.html.",
   "recovery_words_dual_hint": "Qualquer lista de palavras pode ser usada para recuperação. Elas codificam os mesmos dados.",
+  "lang_ca": "Catalão",
   "lang_en": "Inglês",
   "lang_es": "Espanhol",
   "lang_fr": "Francês",

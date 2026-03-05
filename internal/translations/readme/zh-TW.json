@@ -49,6 +49,7 @@
   "recovery_words_title_english": "你的 {0} 個復原詞組（英文）：",
   "recovery_words_hint": "向負責復原的人讀出這些字詞，或輸入到 recover.html 的復原工具。",
   "recovery_words_dual_hint": "不同語言的詞組清單編碼相同的資料，任一均可用於復原檔案。",
+  "lang_ca": "加泰隆尼亞文",
   "lang_en": "英文",
   "lang_es": "西班牙文",
   "lang_fr": "法文",

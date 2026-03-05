@@ -49,6 +49,7 @@
   "recovery_words_title_english": "VOS {0} MOTS DE RÉCUPÉRATION (ANGLAIS) :",
   "recovery_words_hint": "Lisez ces mots à la personne qui vous aide, ou saisissez-les\ndans l'outil de récupération sur recover.html.",
   "recovery_words_dual_hint": "Les deux listes fonctionnent pour la récupération. Elles encodent les mêmes données.",
+  "lang_ca": "catalan",
   "lang_en": "anglais",
   "lang_es": "espagnol",
   "lang_fr": "français",
