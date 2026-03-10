@@ -86,8 +86,9 @@ func GenerateReadme(data ReadmeData) ([]byte, error) {
 	p.SetMargins(20, 20, 20)
 	p.SetAutoPageBreak(true, 20)
 
-	// Register embedded UTF-8 TrueType fonts (DejaVu Sans)
-	registerUTF8Fonts(p)
+	// Register embedded UTF-8 TrueType fonts.
+	// For CJK languages, Noto Sans SC is used instead of DejaVu Sans.
+	registerUTF8Fonts(p, lang)
 
 	// Bundle identity color — each friend gets a distinct strip
 	colorIdx := 0

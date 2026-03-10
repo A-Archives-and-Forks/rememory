@@ -182,6 +182,42 @@ func TestQRCodeContentMatchesCompact(t *testing.T) {
 	}
 }
 
+func TestGenerateReadmeCJK(t *testing.T) {
+	data := testReadmeData()
+	data.Language = "zh-TW"
+	data.Holder = "小明"
+	data.ProjectName = "我的秘密"
+	data.OtherFriends = []project.Friend{
+		{Name: "小華", Contact: "xiaohua@example.com"},
+		{Name: "小美", Contact: "xiaomei@example.com"},
+	}
+	pdfBytes, err := GenerateReadme(data)
+	if err != nil {
+		t.Fatalf("GenerateReadme (zh-TW): %v", err)
+	}
+	if len(pdfBytes) == 0 {
+		t.Fatal("generated CJK PDF is empty")
+	}
+	if !bytes.HasPrefix(pdfBytes, []byte("%PDF-")) {
+		t.Error("CJK output does not start with PDF header")
+	}
+}
+
+func TestIsCJKLanguage(t *testing.T) {
+	cjk := []string{"zh-TW", "zh-CN", "zh", "ja", "ko"}
+	for _, lang := range cjk {
+		if !isCJKLanguage(lang) {
+			t.Errorf("isCJKLanguage(%q) = false, want true", lang)
+		}
+	}
+	nonCJK := []string{"en", "es", "fr", "de", "sl", "pt", "ca", ""}
+	for _, lang := range nonCJK {
+		if isCJKLanguage(lang) {
+			t.Errorf("isCJKLanguage(%q) = true, want false", lang)
+		}
+	}
+}
+
 func TestPDFContainsAppendedShare(t *testing.T) {
 	data := testReadmeData()
 	pdfBytes, err := GenerateReadme(data)

@@ -1,6 +1,8 @@
 /rememory
 /internal/html/assets/recover.wasm
 /internal/html/assets/create.wasm
+/internal/html/assets/create-cjk.wasm
+/rememory-cjk
 /internal/html/assets/app.js
 /internal/html/assets/create-app.js
 /internal/html/assets/shared.js

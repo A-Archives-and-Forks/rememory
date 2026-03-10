@@ -1,4 +1,4 @@
-.PHONY: build test test-tlock test-e2e test-e2e-headed lint clean install wasm ts build-all bump man html serve demo demo-tlock generate-fixtures full update-pdf-png screenshots release check-translations
+.PHONY: build test test-tlock test-e2e test-e2e-headed lint clean install wasm wasm-cjk build-cjk ts build-all bump man html serve demo demo-tlock generate-fixtures full update-pdf-png screenshots release check-translations
 
 BINARY := rememory
 VERSION := $(shell cat VERSION 2>/dev/null || echo "dev")
@@ -43,6 +43,24 @@ wasm: ts
 		echo "Warning: wasm_exec.js not found"; \
 	fi
 
+# Build WASM with CJK font support (produces a larger ~21 MB maker.html).
+# After running this, use 'make build-cjk' to build the CLI that embeds it.
+wasm-cjk: ts
+	@mkdir -p internal/html/assets
+	@echo "Building create-cjk.wasm (bundle creation with CJK font support)..."
+	GOOS=js GOARCH=wasm go build -tags "create cjk" -o internal/html/assets/create-cjk.wasm ./internal/wasm
+	@if [ ! -f internal/html/assets/wasm_exec.js ]; then \
+		cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" internal/html/assets/ 2>/dev/null || \
+		cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" internal/html/assets/ 2>/dev/null || \
+		echo "Warning: wasm_exec.js not found"; \
+	fi
+
+# Build CLI that generates CJK-capable maker.html (requires 'make wasm-cjk' first).
+# The resulting binary produces a ~21 MB maker.html with Chinese/Japanese/Korean support.
+# Usage: make wasm-cjk && make build-cjk && ./rememory-cjk html create > maker-cjk.html
+build-cjk: wasm-cjk
+	go build $(LDFLAGS) -tags cjk -o $(BINARY)-cjk ./cmd/rememory
+
 install: wasm
 	go install $(LDFLAGS) ./cmd/rememory
 
@@ -79,8 +97,8 @@ lint:
 	npx tsc --noEmit --project internal/html/assets/tsconfig.json
 
 clean:
-	rm -f $(BINARY) coverage.out coverage.html
-	rm -f internal/html/assets/recover.wasm internal/html/assets/create.wasm
+	rm -f $(BINARY) $(BINARY)-cjk coverage.out coverage.html
+	rm -f internal/html/assets/recover.wasm internal/html/assets/create.wasm internal/html/assets/create-cjk.wasm
 	rm -f internal/html/assets/app.js internal/html/assets/app-tlock.js internal/html/assets/create-app.js internal/html/assets/shared.js internal/html/assets/types.js internal/html/assets/create-app-selfhosted.js
 	rm -rf dist/ man/
 	go clean -testcache
