@@ -23,54 +23,151 @@
 
         versionFile = builtins.replaceStrings ["\n"] [""] (builtins.readFile ./VERSION);
 
-        rememory = pkgs.buildGoModule {
-          pname = "rememory";
+        npmDeps = pkgs.fetchNpmDeps {
+          src = ./.;
+          hash = "sha256-Sa/gJ7RIq3mZOIRWVH5blVjWAwSoaQRs8373T8p0WLE=";
+        };
+
+        # Build TypeScript + WASM assets with the native toolchain. These are
+        # architecture-independent and can be reused across cross builds.
+        # Uses buildGoModule so Go dependencies are available in the sandbox.
+        wasmAssets = pkgs.buildGoModule {
+          pname = "rememory-wasm-assets";
           version = versionFile;
           src = ./.;
 
           vendorHash = "sha256-VXXnA+3+aiSaEq+bfdnzP+8OInQhO/LwBy9wSm0HCJQ=";
-          proxyVendor = true; # Download deps during build instead of vendoring
+          proxyVendor = true;
 
-          # The go-modules derivation only fetches Go deps — skip TS/WASM build there
           overrideModAttrs = old: {
             preBuild = null;
           };
 
           nativeBuildInputs = [ pkgs.esbuild pkgs.gnumake pkgs.nodejs pkgs.cacert ];
 
-          npmDeps = pkgs.fetchNpmDeps {
-            src = ./.;
-            hash = "sha256-Sa/gJ7RIq3mZOIRWVH5blVjWAwSoaQRs8373T8p0WLE=";
-          };
+          inherit npmDeps;
 
           # Patch go.mod to match nixpkgs Go version (nixpkgs may lag behind)
           prePatch = ''
             sed -i "s/^go .*/go ${pkgs.go.version}/" go.mod
           '';
 
-          # Install npm deps and build TypeScript + WASM
+          # Build only the WASM and TypeScript — skip the native Go binary
           preBuild = ''
             export HOME=$TMPDIR
             npm config set cache "$npmDeps"
             npm ci --ignore-scripts --prefer-offline
-            # Remove broken esbuild from node_modules — npm ci --ignore-scripts
-            # skips the postinstall that downloads the platform binary, leaving a
-            # broken wrapper that shadows the working esbuild from nativeBuildInputs.
             rm -f node_modules/.bin/esbuild
             export PATH="$PWD/node_modules/.bin:$PATH"
             make wasm
           '';
 
-          # Generate and install man pages
-          postInstall = ''
-            mkdir -p $out/share/man/man1
-            $out/bin/rememory doc $out/share/man/man1
+          # Skip the normal Go build — we only want the WASM/JS artifacts
+          buildPhase = ''
+            runHook preBuild
           '';
 
-          subPackages = [ "cmd/rememory" ];
-
-          ldflags = [ "-s" "-w" "-X main.version=${versionFile}" ];
+          installPhase = ''
+            mkdir -p $out
+            cp internal/html/assets/*.js internal/html/assets/*.wasm $out/
+          '';
         };
+
+        # Shared builder for the rememory binary. Accepts a target Go package set
+        # (for cross-compilation) and optional pre-built WASM assets to avoid
+        # rebuilding them with a cross compiler that can't target js/wasm.
+        mkRememory = { goPkgs ? pkgs, enableManPages ? true, prebuiltAssets ? null }:
+          goPkgs.buildGoModule {
+            pname = "rememory";
+            version = versionFile;
+            src = ./.;
+
+            vendorHash = "sha256-VXXnA+3+aiSaEq+bfdnzP+8OInQhO/LwBy9wSm0HCJQ=";
+            proxyVendor = true; # Download deps during build instead of vendoring
+
+            # The go-modules derivation only fetches Go deps — skip TS/WASM build there
+            overrideModAttrs = old: {
+              preBuild = null;
+            };
+
+            nativeBuildInputs = [ pkgs.esbuild pkgs.gnumake pkgs.nodejs pkgs.cacert ];
+
+            inherit npmDeps;
+
+            # Patch go.mod to match nixpkgs Go version (nixpkgs may lag behind)
+            prePatch = ''
+              sed -i "s/^go .*/go ${goPkgs.go.version}/" go.mod
+            '';
+
+            # Install npm deps and build TypeScript + WASM.
+            # For cross builds, pre-built assets are copied in instead of running
+            # `make wasm`, because the cross Go linker can't target js/wasm.
+            preBuild = if prebuiltAssets != null then ''
+              cp ${prebuiltAssets}/*.js internal/html/assets/
+              cp ${prebuiltAssets}/*.wasm internal/html/assets/
+            '' else ''
+              export HOME=$TMPDIR
+              npm config set cache "$npmDeps"
+              npm ci --ignore-scripts --prefer-offline
+              # Remove broken esbuild from node_modules — npm ci --ignore-scripts
+              # skips the postinstall that downloads the platform binary, leaving a
+              # broken wrapper that shadows the working esbuild from nativeBuildInputs.
+              rm -f node_modules/.bin/esbuild
+              export PATH="$PWD/node_modules/.bin:$PATH"
+              make wasm
+            '';
+
+            # Generate and install man pages (only for native builds —
+            # cross-compiled binaries can't run on the build host)
+            postInstall = pkgs.lib.optionalString enableManPages ''
+              mkdir -p $out/share/man/man1
+              $out/bin/rememory doc $out/share/man/man1
+            '';
+
+            subPackages = [ "cmd/rememory" ];
+
+            ldflags = [ "-s" "-w" "-X main.version=${versionFile}" ];
+          };
+
+        rememory = mkRememory { };
+
+        mkDockerImage = { rememoryPkg, tag ? "latest", arch ? null }:
+          pkgs.dockerTools.buildImage ({
+            name = "rememory";
+            inherit tag;
+            copyToRoot = pkgs.buildEnv {
+              name = "rememory-root";
+              paths = [ rememoryPkg ];
+            };
+            config = {
+              Cmd = [ "${rememoryPkg}/bin/rememory" "serve" "--host" "0.0.0.0" "--port" "8080" "--data" "/data" ];
+              ExposedPorts = { "8080/tcp" = { }; };
+              Volumes = { "/data" = { }; };
+            };
+          } // pkgs.lib.optionalAttrs (arch != null) { architecture = arch; });
+
+        # Cross-compiled arm64 packages (only available on x86_64-linux,
+        # where CI runs — used to produce multi-arch Docker images)
+        crossPackages = pkgs.lib.optionalAttrs (system == "x86_64-linux") (
+          let
+            pkgsCrossArm64 = import nixpkgs {
+              localSystem = "x86_64-linux";
+              crossSystem = "aarch64-linux";
+            };
+            rememory-arm64 = mkRememory {
+              goPkgs = pkgsCrossArm64;
+              enableManPages = false;
+              prebuiltAssets = wasmAssets;
+            };
+          in {
+            rememory-arm64 = rememory-arm64;
+            docker-arm64 = mkDockerImage {
+              rememoryPkg = rememory-arm64;
+              tag = "latest-arm64";
+              arch = "arm64";
+            };
+          }
+        );
 
       in
       {
@@ -78,19 +175,7 @@
           rememory = rememory;
           default = rememory;
 
-          docker = pkgs.dockerTools.buildImage {
-            name = "rememory";
-            tag = "latest";
-            copyToRoot = pkgs.buildEnv {
-              name = "rememory-root";
-              paths = [ rememory ];
-            };
-            config = {
-              Cmd = [ "${rememory}/bin/rememory" "serve" "--host" "0.0.0.0" "--port" "8080" "--data" "/data" ];
-              ExposedPorts = { "8080/tcp" = { }; };
-              Volumes = { "/data" = { }; };
-            };
-          };
+          docker = mkDockerImage { rememoryPkg = rememory; };
 
           e2e-tests = pkgs.buildNpmPackage {
             pname = "rememory-e2e";
@@ -132,7 +217,7 @@
               fi
             '';
           };
-        };
+        } // crossPackages;
 
         apps = {
           rememory = flake-utils.lib.mkApp { drv = rememory; };

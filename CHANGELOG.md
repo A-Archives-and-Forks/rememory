@@ -4,6 +4,8 @@ All notable changes to ReMemory are documented here.
 
 ## Unreleased
 
+- **Docker on arm64** — The Docker image now ships for both amd64 and arm64. `docker pull` picks the right one automatically.
+
 ## v0.0.17 — 2026-03-11
 
 - **Dutch language support** — Added Dutch as a supported language for the recovery tool, maker, and bundle instructions. Thanks @idebeijer!

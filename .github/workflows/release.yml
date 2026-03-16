@@ -145,11 +145,15 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-25.11
 
-      - name: Build Docker image
-        run: nix build .#docker -o result
+      - name: Build Docker images (amd64 + arm64)
+        run: |
+          nix build .#docker -o result-amd64
+          nix build .#docker-arm64 -o result-arm64
 
-      - name: Load Docker image
-        run: docker load < result
+      - name: Load Docker images
+        run: |
+          docker load < result-amd64
+          docker load < result-arm64
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -158,14 +162,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push Docker image
+      - name: Push multi-arch Docker images
         run: |
           IMAGE="ghcr.io/${{ github.repository }}"
           VERSION="${{ github.ref_name }}"
-          docker tag rememory:latest "${IMAGE}:${VERSION}"
-          docker push "${IMAGE}:${VERSION}"
-          docker tag rememory:latest "${IMAGE}:latest"
-          docker push "${IMAGE}:latest"
+
+          # Push architecture-specific images
+          docker tag rememory:latest "${IMAGE}:${VERSION}-amd64"
+          docker push "${IMAGE}:${VERSION}-amd64"
+          docker tag rememory:latest-arm64 "${IMAGE}:${VERSION}-arm64"
+          docker push "${IMAGE}:${VERSION}-arm64"
+
+          # Create and push multi-arch manifests
+          docker manifest create "${IMAGE}:${VERSION}" \
+            "${IMAGE}:${VERSION}-amd64" \
+            "${IMAGE}:${VERSION}-arm64"
+          docker manifest push "${IMAGE}:${VERSION}"
+
+          docker manifest create "${IMAGE}:latest" \
+            "${IMAGE}:${VERSION}-amd64" \
+            "${IMAGE}:${VERSION}-arm64"
+          docker manifest push "${IMAGE}:latest"
 
   release:
     needs: [test, docker]
