@@ -4,6 +4,8 @@ All notable changes to ReMemory are documented here.
 
 ## Unreleased
 
+## v0.0.18 — 2026-03-16
+
 - **Docker on arm64** — The Docker image now ships for both amd64 and arm64. `docker pull` picks the right one automatically.
 
 ## v0.0.17 — 2026-03-11
