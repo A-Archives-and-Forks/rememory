@@ -1,7 +1,7 @@
 {
   "title": "Dosyaları Kurtar",
   "subtitle": "Arkadaşlarının güvende tuttuğu parçaları bir araya getir.",
-  "page_description": "Her arkadaş bir anahtar parçası içeren bir paket aldı. Aşağıda yeterli parçayı topla, şifreli arşivi ekle ve dosyalarının tarayıcıda şifresi çözülsün. Hiçbir şey cihazını terk etmez.",
+  "page_description": "Her arkadaş bir anahtar parçası içeren bir paket aldı. Aşağıda yeterli parçayı topla, şifreli arşivi ekle ve dosyalarının tarayıcıda şifresi çözülsün. Hiçbir veri cihazınızdan çıkmaz.",
   "step1_title": "Parçaları topla",
   "step1_drop": "Paket dosyalarını buraya bırak veya seçmek için tıkla",
   "step1_hint": "README, paket ZIP veya recover.html",
