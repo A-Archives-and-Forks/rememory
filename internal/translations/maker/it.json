@@ -19,7 +19,7 @@
   "import_placeholder": "Incolla il contenuto del tuo project.yml qui...",
   "import_btn": "Importa contatti",
   "step2_title": "File da proteggere",
-  "files_drop": "Trascina & rilascia una cartella qui, oppure clicca per selezionare i file",
+  "files_drop": "Trascina e rilascia una cartella qui, oppure clicca per selezionare i file",
   "files_hint": "Saranno protetti e divisi tra i tuoi amici",
   "files_summary": "{0} file, {1} totali",
   "files_too_large": "Troppo grande — il limite è {0}",
@@ -49,9 +49,9 @@
   "validation_title": "Qualche campo richiede attenzione",
   "validation_message": "Riempi i campi evidenziati prima di generare.",
   "validation_guidance": "Ogni amico ha bisogno di un nome, almeno un file deve essere aggiunto.",
-  "language_label": "Linguaggio nel pacchetto",
-
-  "custom_language_label": "Cambia linguaggio",
+  "language_label": "Lingua del pacchetto",
+  
+  "custom_language_label": "Cambia lingua",
   "threshold_guidance": "Pensa chi può essere raggiunto allo stesso momento. Un numero più basso è più tollerante se qualcuno non è disponibile.",
   "mode_simple": "Semplice",
   "mode_advanced": "Avanzato",
