@@ -137,12 +137,20 @@
             inherit tag;
             copyToRoot = pkgs.buildEnv {
               name = "rememory-root";
-              paths = [ rememoryPkg ];
+              paths = [
+                rememoryPkg
+                pkgs.dockerTools.fakeNss
+              ];
             };
+            runAsRoot = ''
+              mkdir -p /data
+              chown 65534:65534 /data
+            '';
             config = {
               Cmd = [ "${rememoryPkg}/bin/rememory" "serve" "--host" "0.0.0.0" "--port" "8080" "--data" "/data" ];
               ExposedPorts = { "8080/tcp" = { }; };
               Volumes = { "/data" = { }; };
+              User = "65534:65534";
             };
           } // pkgs.lib.optionalAttrs (arch != null) { architecture = arch; });
 
