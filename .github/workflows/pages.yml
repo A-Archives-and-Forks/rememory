@@ -55,7 +55,7 @@ jobs:
           echo 'google-site-verification: google1b0743ea2e7f5c7c.html' > _site/google1b0743ea2e7f5c7c.html
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
