@@ -92,5 +92,11 @@
   "tlock_error_message": "Your pieces worked, but the time lock couldn't be verified. This usually means the network request was blocked.",
   "tlock_error_guidance": "Try a different browser (Chrome works best), or download the locked archive and use the CLI tool.",
   "tlock_error_status": "Time lock check failed. Your pieces are correct — try a different browser.",
-  "tlock_download_archive": "Download locked archive"
+  "tlock_download_archive": "Download locked archive",
+  "verification_title": "Your bundle is working",
+  "verification_piece": "You hold piece {0} of {1}.",
+  "verification_threshold": "At least {0} pieces are needed for recovery.",
+  "verification_manifest_ok": "Encrypted archive is pre-loaded.",
+  "verification_manifest_missing": "The encrypted archive will need to be provided during recovery.",
+  "verification_keep_safe": "Keep this bundle somewhere safe. When recovery is needed, contact the people listed below."
 }

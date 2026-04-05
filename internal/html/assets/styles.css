@@ -221,6 +221,40 @@ input[type="file"] {
   font-size: 1rem;
 }
 
+.verification-status {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+  color: var(--success-text);
+  line-height: 1.5;
+}
+
+.verification-status .verification-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.verification-status .verification-details {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.verification-status .verification-details p {
+  margin: 0.25rem 0;
+}
+
+.verification-status .verification-note {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .threshold-info {
   padding: 0.75rem 1rem;
   background: var(--sage-tint);

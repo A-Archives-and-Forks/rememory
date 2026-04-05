@@ -114,6 +114,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
     pasteSubmitBtn: HTMLButtonElement | null;
     contactListSection: HTMLElement | null;
     contactList: HTMLElement | null;
+    verificationStatus: HTMLElement | null;
     step1Card: HTMLElement | null;
     step2Card: HTMLElement | null;
     scanQrBtn: HTMLButtonElement | null;
@@ -146,6 +147,7 @@ type UIShare = ParsedShare & { isHolder?: boolean };
     pasteSubmitBtn: document.getElementById('paste-submit-btn') as HTMLButtonElement | null,
     contactListSection: document.getElementById('contact-list-section'),
     contactList: document.getElementById('contact-list'),
+    verificationStatus: document.getElementById('verification-status'),
     step1Card: null,
     step2Card: null,
     scanQrBtn: document.getElementById('scan-qr-btn') as HTMLButtonElement | null,
@@ -1088,6 +1090,46 @@ type UIShare = ParsedShare & { isHolder?: boolean };
     }
 
     updateContactList();
+    updateVerificationStatus();
+  }
+
+  // ============================================
+  // Bundle Verification Status
+  // ============================================
+
+  function updateVerificationStatus(): void {
+    if (!elements.verificationStatus) return;
+
+    // Show verification when we have shares but haven't reached threshold yet
+    const hasShares = state.shares.length > 0;
+    const belowThreshold = state.threshold > 0 && state.shares.length < state.threshold;
+    const notRecovering = !state.recovering && !state.recoveryComplete;
+
+    if (hasShares && belowThreshold && notRecovering) {
+      const share = state.shares[0];
+      const manifestPresent = state.manifest !== null;
+
+      const manifestLine = manifestPresent
+        ? t('verification_manifest_ok')
+        : t('verification_manifest_missing');
+
+      elements.verificationStatus.innerHTML = `
+        <div class="verification-header">
+          <span>&#9989;</span> ${escapeHtml(t('verification_title'))}
+        </div>
+        <div class="verification-details">
+          <p>${escapeHtml(t('verification_piece', share.index, share.total))}</p>
+          <p>${escapeHtml(t('verification_threshold', state.threshold))}</p>
+          <p>${escapeHtml(manifestLine)}</p>
+        </div>
+        <div class="verification-note">
+          ${escapeHtml(t('verification_keep_safe'))}
+        </div>
+      `;
+      elements.verificationStatus.classList.remove('hidden');
+    } else {
+      elements.verificationStatus.classList.add('hidden');
+    }
   }
 
   // ============================================
