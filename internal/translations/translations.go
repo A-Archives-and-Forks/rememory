@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"html"
 	"sort"
 	"strings"
 )
@@ -56,9 +57,9 @@ func LangSelectOptions() string {
 			b.WriteString("\n        ")
 		}
 		b.WriteString(`<option value="`)
-		b.WriteString(entry[0])
+		b.WriteString(html.EscapeString(entry[0]))
 		b.WriteString(`">`)
-		b.WriteString(entry[1])
+		b.WriteString(html.EscapeString(entry[1]))
 		b.WriteString(`</option>`)
 	}
 	return b.String()
