@@ -25,7 +25,7 @@
 
         npmDeps = pkgs.fetchNpmDeps {
           src = ./.;
-          hash = "sha256-CKDiC8HQqdDaCXs7sRoHQRhFFfeNIUb3ZNAXbcKFu44=";
+          hash = "sha256-CWmGewEmq6BlgRcsV8msiRHdtkQaOhbHH8cE8qbTSgk=";
         };
 
         # Build TypeScript + WASM assets with the native toolchain. These are
