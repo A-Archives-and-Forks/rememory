@@ -69,7 +69,7 @@ var wordListSpecs = []wordListSpec{
 	{LangPT, "wordlists/portuguese.txt", "https://github.com/bitcoin/bips/blob/ed7af6ae7e80c90bcfc69b3936073505e2fc2503/bip-0039/portuguese.txt", "2685e9c194c82ae67e10ba59d9ea5345a23dc093e92276fc5361f6667d79cd3f"},
 	{LangZH_TW, "wordlists/chinese_traditional.txt", "https://github.com/bitcoin/bips/blob/7d77befd2b14359b9386fc1f9fb15f82d418fb34/bip-0039/chinese_traditional.txt", "417b26b3d8500a4ae3d59717d7011952db6fc2fb84b807f3f94ac734e89c1b5f"},
 	{LangCA, "wordlists/catalan.txt", "https://github.com/1ma/diceware-cat/blob/master/cat-wordlist-ascii.txt", "be159d519390a5de8d9fb90421ea758643ddfb69f439651f5d81c10910151e56"},
-	{LangTR, "wordlists/turkish.txt", "https://github.com/FrustT/BIP39_TR/blob/main/bip39_turkish.txt", "6976e24004957d67ee52981ca1589705c34538b633078ab3ef4d7d78dcad6f3f"},
+	{LangTR, "wordlists/turkish.txt", "https://github.com/FrustT/BIP39_TR/blob/main/bip39_turkish.txt", "d0bc501581a396808a888235629924969d66f5d37bc9a800b24fb93a44d89044"},
 }
 
 var (

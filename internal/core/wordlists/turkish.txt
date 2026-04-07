@@ -54,7 +54,6 @@ agio
 agnostik
 agraf
 agucuk
-agustos
 ahali
 ahar
 ahbap
@@ -76,7 +75,6 @@ akan
 akar
 akasya
 akbaba
-akici
 akil
 akit
 akkavak
@@ -177,11 +175,10 @@ apatit
 apel
 aplik
 apse
-aptal
 araba
-araci
 aragonit
 aralama
+arama
 aranje
 ararot
 arbalet
@@ -235,7 +232,6 @@ ateist
 aterina
 atfen
 atgiller
-atif
 atla
 atma
 atmosfer
@@ -322,6 +318,7 @@ berhane
 beri
 besalet
 besbelli
+beton
 bevliye
 beyan
 beygir
@@ -451,7 +448,6 @@ cinci
 cips
 civan
 conta
-corpus
 cuma
 cumhur
 cunda
@@ -500,7 +496,6 @@ devlet
 devralma
 deyim
 diaspora
-dibi
 dijital
 dikici
 dikkat
@@ -611,7 +606,7 @@ empoze
 emprime
 emsal
 emzik
-enayi
+endam
 endeks
 endorfin
 enerji
@@ -753,6 +748,7 @@ fitil
 fiyonk
 fizik
 fizyolog
+flama
 flandra
 folk
 fonda
@@ -785,6 +781,7 @@ galvaniz
 gama
 garabet
 garbi
+garip
 garnizon
 garson
 gauss
@@ -1155,6 +1152,7 @@ komut
 konfeti
 kongre
 konkav
+konser
 konu
 konveks
 koordine
@@ -1374,12 +1372,10 @@ motris
 mozaik
 muaf
 muamma
-muasir
 muayene
 muazzam
 mucip
 mucuk
-mudavim
 mufit
 muhabbet
 muhbir
@@ -1393,14 +1389,12 @@ mumbar
 mumcu
 mumla
 murad
-murver
 musaka
 musevi
 musiki
 muska
 muslin
 mutad
-mutevazi
 mutfak
 mutlak
 mutsuz
@@ -1409,7 +1403,6 @@ muzaffer
 muzip
 muzmin
 muzur
-nabiz
 nadir
 nafaka
 naif
@@ -1421,6 +1414,7 @@ namlu
 napalm
 narin
 nasibini
+naylon
 nefes
 nefis
 nefret
@@ -1469,7 +1463,6 @@ okyanus
 olacak
 oldu
 oleik
-oligarsi
 olimpik
 olivin
 olsa
@@ -1495,7 +1488,6 @@ orlon
 ortak
 ortopedi
 orucunda
-osmanli
 otalama
 otlu
 otogar
@@ -1561,6 +1553,7 @@ pimpirik
 piramit
 piruhi
 piskopos
+piston
 piyade
 piyon
 plaj
@@ -1569,7 +1562,6 @@ plazma
 plebisit
 plevra
 pleybek
-pliyaj
 plonjon
 podyum
 pofur
@@ -1590,6 +1582,7 @@ prafa
 pratik
 prens
 printer
+prizma
 profil
 proje
 protein
@@ -1605,6 +1598,7 @@ pullama
 pulsuz
 pusat
 racon
+radar
 radyan
 rafinaj
 rafting
@@ -1717,6 +1711,7 @@ seyir
 seyran
 sezgi
 sezme
+sezon
 sfenks
 sigma
 sihir
@@ -1740,6 +1735,7 @@ sofra
 sofu
 sohbet
 sokak
+solar
 solfej
 solgun
 solist
@@ -1780,12 +1776,13 @@ tahmin
 tahsil
 tahta
 takas
-takim
+takip
 taksi
 takunya
 takvim
 tamik
 tamzara
+tango
 tanzim
 tapir
 tapma
@@ -1831,6 +1828,7 @@ temcit
 temhir
 temkin
 temmuz
+tempo
 temsil
 temyiz
 tenakus
@@ -1840,6 +1838,7 @@ tenvir
 tenzih
 teokrasi
 teorem
+terapi
 terbi
 ters
 tertemiz
@@ -1939,7 +1938,6 @@ vantuz
 vapur
 vargel
 varil
-varlik
 varyant
 vatka
 vatoz
@@ -1962,9 +1960,11 @@ vicdan
 vido
 vikont
 vilayet
+viraj
 virman
 viroloji
 virt
+vitamin
 vitray
 viyola
 vizyon
