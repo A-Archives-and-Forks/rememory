@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	filippo.io/age v1.3.1
-	github.com/drand/drand/v2 v2.1.5
+	github.com/drand/drand/v2 v2.1.6
 	github.com/drand/kyber v1.3.2
 	github.com/drand/tlock v1.2.0
 	github.com/go-pdf/fpdf v0.9.0
