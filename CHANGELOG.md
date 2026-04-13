@@ -4,6 +4,8 @@ All notable changes to ReMemory are documented here.
 
 ## Unreleased
 
+- Minor improvements to arm64 support in the Docker image.
+
 ## v0.0.20 — 2026-04-13
 
 - **Bundle verification** — When a friend opens their bundle with just their own piece, a card now confirms everything is working: which piece they hold, how many are needed, and whether the encrypted archive is included. A small reassurance that their bundle is ready for when it matters. Thanks @tmchow!
