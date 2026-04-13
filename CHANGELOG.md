@@ -4,6 +4,8 @@ All notable changes to ReMemory are documented here.
 
 ## Unreleased
 
+## v0.0.21 — 2026-04-13
+
 - Minor improvements to arm64 support in the Docker image.
 
 ## v0.0.20 — 2026-04-13
