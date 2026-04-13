@@ -72,15 +72,51 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-25.11
 
-      - name: Build Docker images (amd64 + arm64)
+      - name: Build Docker images (fix Nix hashes if needed)
         run: |
-          nix build .#docker -o result-amd64
+          # Build amd64, auto-fixing hash mismatches (up to 3 rounds for
+          # npmDeps + vendorHash + verify)
+          for attempt in 1 2 3; do
+            echo "=== Build attempt $attempt ==="
+            if nix build .#docker -o result-amd64 2>build-err.log; then
+              break
+            fi
+
+            cat build-err.log >&2
+            NEW_HASH=$(grep -oE 'got:[[:space:]]+[^ ]+' build-err.log | sed 's/got:[[:space:]]*//')
+            if [ -z "$NEW_HASH" ]; then
+              echo "Build failed without a hash mismatch"
+              exit 1
+            fi
+
+            if grep -q 'npm-deps' build-err.log; then
+              echo "Fixing npmDeps hash: $NEW_HASH"
+              sed -i "/fetchNpmDeps/,/};/ s|hash = \".*\"|hash = \"$NEW_HASH\"|" flake.nix
+            else
+              echo "Fixing vendorHash: $NEW_HASH"
+              sed -i "s|vendorHash = \".*\"|vendorHash = \"$NEW_HASH\"|" flake.nix
+            fi
+          done
+
           nix build .#docker-arm64 -o result-arm64
+
+      - name: Commit hash fix
+        run: |
+          git diff --quiet flake.nix && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add flake.nix
+          git commit -m "fix: update Nix hashes for dependency changes"
+          git push
