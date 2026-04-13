@@ -92,5 +92,11 @@
   "tlock_error_message": "Uw fragmenten zijn correct, maar het tijdslot kon niet worden geverifieerd via internet. Zorg voor een werkende internetverbinding.",
   "tlock_error_guidance": "Probeer in Chromium (Chrome, Edge, Brave) of gebruik het CLI programma.",
   "tlock_error_status": "Tijdslot controle mislukt. Zorg voor een werkende internetverbinding en probeer opnieuw in Chrome.",
-  "tlock_download_archive": "Download versleuteld archief"
+  "tlock_download_archive": "Download versleuteld archief",
+  "verification_title": "Uw bundel werkt",
+  "verification_piece": "U heeft fragment {0} van {1}.",
+  "verification_threshold": "U heeft minimaal {0} fragmenten nodig om te herstellen.",
+  "verification_manifest_ok": "Het versleutelde archief zit inbegrepen.",
+  "verification_manifest_missing": "U moet het versleutelde archief toevoegen wanneer het tijd is om te herstellen.",
+  "verification_keep_safe": "Bewaar deze bundel op een veilige plek. Wanneer het moment daar is, voegt u uw fragment samen met die van de anderen om te herstellen."
 }

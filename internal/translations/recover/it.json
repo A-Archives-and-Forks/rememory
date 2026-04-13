@@ -92,5 +92,11 @@
   "tlock_error_message": "I tuoi pezzi hanno funzionato, ma non è stato possibile verificare il blocco a tempo. Questo solitamente significa che la richiesta di rete è stato bloccato.",
   "tlock_error_guidance": "Prova un browser differente (Chrome funziona al meglio), o scarica l'archivio bloccato e utilizza lo strumento CLI.",
   "tlock_error_status": "Controllo del blocco a tempo fallito. I tuoi pezzi sono corretti — prova un browser differente.",
-  "tlock_download_archive": "Scarica l'archivio bloccato"
+  "tlock_download_archive": "Scarica l'archivio bloccato",
+  "verification_title": "Il tuo pacchetto funziona",
+  "verification_piece": "Hai il pezzo {0} di {1}.",
+  "verification_threshold": "Ti servono almeno {0} pezzi per recuperare.",
+  "verification_manifest_ok": "L'archivio cifrato è già incluso.",
+  "verification_manifest_missing": "Dovrai aggiungere l'archivio cifrato al momento del recupero.",
+  "verification_keep_safe": "Conserva questo pacchetto in un posto sicuro. Quando sarà il momento, unirai il tuo pezzo con quelli degli altri per recuperare."
 }

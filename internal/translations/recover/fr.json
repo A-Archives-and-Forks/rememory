@@ -92,5 +92,11 @@
   "tlock_error_message": "Vos parts ont fonctionné, mais le verrouillage temporel n'a pas pu être vérifié. Cela signifie généralement que la requête réseau a été bloquée.",
   "tlock_error_guidance": "Essayez un autre navigateur (Chrome fonctionne le mieux), ou téléchargez l'archive verrouillée et utilisez l'outil CLI.",
   "tlock_error_status": "Échec de la vérification du verrouillage temporel. Vos parts sont correctes — essayez un autre navigateur.",
-  "tlock_download_archive": "Télécharger l'archive verrouillée"
+  "tlock_download_archive": "Télécharger l'archive verrouillée",
+  "verification_title": "Votre enveloppe fonctionne",
+  "verification_piece": "Vous détenez la part {0} sur {1}.",
+  "verification_threshold": "Il vous faut au moins {0} parts pour récupérer.",
+  "verification_manifest_ok": "L'archive chiffrée est incluse.",
+  "verification_manifest_missing": "Vous devrez ajouter l'archive chiffrée au moment de récupérer.",
+  "verification_keep_safe": "Conservez cette enveloppe en lieu sûr. Le moment venu, vous réunirez votre part avec celles des autres pour récupérer."
 }

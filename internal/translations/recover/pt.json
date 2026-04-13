@@ -92,5 +92,11 @@
   "tlock_error_message": "Suas partes funcionaram, mas o bloqueio por data não pôde ser verificado. Geralmente isso significa que a requisição de rede foi bloqueada.",
   "tlock_error_guidance": "Tente um navegador diferente (o Chrome funciona melhor), ou baixe o arquivo bloqueado e use a ferramenta CLI.",
   "tlock_error_status": "Falha na verificação do bloqueio por data. Suas partes estão corretas — tente um navegador diferente.",
-  "tlock_download_archive": "Baixar arquivo bloqueado"
+  "tlock_download_archive": "Baixar arquivo bloqueado",
+  "verification_title": "Seu pacote está funcionando",
+  "verification_piece": "Você tem a parte {0} de {1}.",
+  "verification_threshold": "Você precisa de pelo menos {0} partes para recuperar.",
+  "verification_manifest_ok": "Já inclui o arquivo criptografado.",
+  "verification_manifest_missing": "Você vai precisar adicionar o arquivo criptografado na hora de recuperar.",
+  "verification_keep_safe": "Guarde este pacote em um lugar seguro. Quando chegar a hora, você vai juntar sua parte com as dos outros para recuperar."
 }

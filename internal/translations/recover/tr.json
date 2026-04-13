@@ -92,5 +92,11 @@
   "tlock_error_message": "Parçaların doğru, ancak zaman kilidi doğrulanamadı. Genellikle ağ isteği engellendiğinde olur.",
   "tlock_error_guidance": "Farklı bir tarayıcı dene (Chrome en iyi), veya kilitli arşivi indirip CLI aracı kullan.",
   "tlock_error_status": "Zaman kilidi kontrolü başarısız. Parçaların doğru — farklı bir tarayıcı dene.",
-  "tlock_download_archive": "Kilitli arşivi indir"
+  "tlock_download_archive": "Kilitli arşivi indir",
+  "verification_title": "Paketin çalışıyor",
+  "verification_piece": "{1} parçadan {0}. parça sende.",
+  "verification_threshold": "Kurtarma için en az {0} parçaya ihtiyacın var.",
+  "verification_manifest_ok": "Şifreli arşiv dahil.",
+  "verification_manifest_missing": "Kurtarma sırasında şifreli arşivi eklemen gerekecek.",
+  "verification_keep_safe": "Bu paketi güvenli bir yerde sakla. Zamanı geldiğinde, parçanı diğerlerininki ile birleştirerek kurtarma yapacaksın."
 }

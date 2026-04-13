@@ -92,5 +92,11 @@
   "tlock_error_message": "你的密钥片段没有问题，但时间锁定无法验证。这通常代表网络请求被阻止了。",
   "tlock_error_guidance": "请试试其他浏览器（Chrome 兼容性最佳），或下载锁定的归档文件并使用命令行工具。",
   "tlock_error_status": "时间锁定验证失败。你的密钥片段正确——请试试其他浏览器。",
-  "tlock_download_archive": "下载锁定的归档文件"
+  "tlock_download_archive": "下载锁定的归档文件",
+  "verification_title": "你的恢复包运行正常",
+  "verification_piece": "你持有第 {0} 个密钥片段，共 {1} 个。",
+  "verification_threshold": "你需要至少 {0} 个密钥片段才能恢复。",
+  "verification_manifest_ok": "已包含加密归档文件。",
+  "verification_manifest_missing": "恢复时你需要添加加密归档文件。",
+  "verification_keep_safe": "请将此恢复包保存在安全的地方。当需要恢复时，你会和其他人一起拼合各自的密钥片段。"
 }

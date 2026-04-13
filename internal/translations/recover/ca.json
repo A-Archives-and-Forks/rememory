@@ -92,5 +92,11 @@
   "tlock_error_message": "Les teves parts van funcionar, però no es va poder verificar el bloqueig per data. Normalment significa que la sol·licitud de xarxa ha estat bloquejada.",
   "tlock_error_guidance": "Prova amb un altre navegador (Chrome funciona millor), o descarrega l'arxiu bloquejat i utilitza l'eina CLI.",
   "tlock_error_status": "Ha fallat la verificació del bloqueig per data. Les teves parts són correctes — prova amb un altre navegador.",
-  "tlock_download_archive": "Descarregar arxiu bloquejat"
+  "tlock_download_archive": "Descarregar arxiu bloquejat",
+  "verification_title": "El teu kit funciona",
+  "verification_piece": "Tens la part {0} de {1}.",
+  "verification_threshold": "Necessites almenys {0} parts per recuperar.",
+  "verification_manifest_ok": "Ja inclou l'arxiu xifrat.",
+  "verification_manifest_missing": "Hauràs d'afegir l'arxiu xifrat quan calgui recuperar.",
+  "verification_keep_safe": "Guarda aquest kit en un lloc segur. Quan arribi el moment, ajuntaràs la teva part amb les dels altres per recuperar."
 }

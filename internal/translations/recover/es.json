@@ -92,5 +92,11 @@
   "tlock_error_message": "Tus partes funcionaron, pero no se pudo verificar el bloqueo por fecha. Normalmente significa que la solicitud de red fue bloqueada.",
   "tlock_error_guidance": "Prueba con otro navegador (Chrome funciona mejor), o descarga el archivo bloqueado y usa la herramienta CLI.",
   "tlock_error_status": "Falló la verificación del bloqueo por fecha. Tus partes son correctas — prueba con otro navegador.",
-  "tlock_download_archive": "Descargar archivo bloqueado"
+  "tlock_download_archive": "Descargar archivo bloqueado",
+  "verification_title": "Tu kit funciona",
+  "verification_piece": "Tienes la parte {0} de {1}.",
+  "verification_threshold": "Necesitas al menos {0} partes para recuperar.",
+  "verification_manifest_ok": "Ya incluye el archivo cifrado.",
+  "verification_manifest_missing": "Tendrás que agregar el archivo cifrado a la hora de recuperar.",
+  "verification_keep_safe": "Guarda este kit en un lugar seguro. Cuando llegue el momento, juntarás tu parte con las demás para recuperar."
 }

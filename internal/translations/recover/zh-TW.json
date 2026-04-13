@@ -92,5 +92,11 @@
   "tlock_error_message": "你的金鑰片段沒有問題，但時間鎖定無法驗證。這通常代表網路請求被封鎖了。",
   "tlock_error_guidance": "請試試其他瀏覽器（Chrome 相容性最佳），或下載鎖定的封存檔並使用命令列工具。",
   "tlock_error_status": "時間鎖定驗證失敗。你的金鑰片段正確——請試試其他瀏覽器。",
-  "tlock_download_archive": "下載鎖定的封存檔"
+  "tlock_download_archive": "下載鎖定的封存檔",
+  "verification_title": "你的復原包運作正常",
+  "verification_piece": "你持有第 {0} 個金鑰片段，共 {1} 個。",
+  "verification_threshold": "你需要至少 {0} 個金鑰片段才能復原。",
+  "verification_manifest_ok": "已包含加密封存檔。",
+  "verification_manifest_missing": "復原時你需要加入加密封存檔。",
+  "verification_keep_safe": "請將此復原包保存在安全的地方。當需要復原時，你會和其他人一起拼合各自的金鑰片段。"
 }

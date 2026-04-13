@@ -92,5 +92,11 @@
   "tlock_error_message": "Vaši deli so delovali, a časovnega zaklepa ni bilo mogoče preveriti. To navadno pomeni, da je bila omrežna zahteva blokirana.",
   "tlock_error_guidance": "Poskusite z drugim brskalnikom (Chrome deluje najbolje), ali prenesite zaklenjen arhiv in uporabite CLI orodje.",
   "tlock_error_status": "Preverjanje časovnega zaklepa ni uspelo. Vaši deli so pravilni — poskusite z drugim brskalnikom.",
-  "tlock_download_archive": "Prenesi zaklenjen arhiv"
+  "tlock_download_archive": "Prenesi zaklenjen arhiv",
+  "verification_title": "Vaš sveženj deluje",
+  "verification_piece": "Imate del {0} od {1}.",
+  "verification_threshold": "Za obnovitev potrebujete vsaj {0} delov.",
+  "verification_manifest_ok": "Šifriran arhiv je vključen.",
+  "verification_manifest_missing": "Ob obnovitvi boste morali dodati šifriran arhiv.",
+  "verification_keep_safe": "Hranite ta sveženj na varnem mestu. Ko bo prišel čas, boste svoj del združili z deli drugih za obnovitev."
 }

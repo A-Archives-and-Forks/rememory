@@ -95,8 +95,8 @@
   "tlock_download_archive": "Download locked archive",
   "verification_title": "Your bundle is working",
   "verification_piece": "You hold piece {0} of {1}.",
-  "verification_threshold": "At least {0} pieces are needed for recovery.",
-  "verification_manifest_ok": "Encrypted archive is pre-loaded.",
-  "verification_manifest_missing": "The encrypted archive will need to be provided during recovery.",
+  "verification_threshold": "You need at least {0} pieces to recover.",
+  "verification_manifest_ok": "Encrypted archive is included.",
+  "verification_manifest_missing": "You'll need to add the encrypted archive when it's time to recover.",
   "verification_keep_safe": "Keep this bundle somewhere safe. When the time comes, you and the others will combine your pieces to recover."
 }

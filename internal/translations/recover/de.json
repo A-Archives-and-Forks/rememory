@@ -92,5 +92,11 @@
   "tlock_error_message": "Deine Teile haben funktioniert, aber die Zeitsperre konnte nicht bestätigt werden. Meistens bedeutet das, dass die Netzwerkanfrage blockiert wurde.",
   "tlock_error_guidance": "Versuche es mit einem anderen Browser (Chrome funktioniert am besten), oder lade das gesperrte Archiv herunter und nutze das CLI-Tool.",
   "tlock_error_status": "Zeitsperre-Prüfung fehlgeschlagen. Deine Teile stimmen — versuche es mit einem anderen Browser.",
-  "tlock_download_archive": "Gesperrtes Archiv herunterladen"
+  "tlock_download_archive": "Gesperrtes Archiv herunterladen",
+  "verification_title": "Dein Paket funktioniert",
+  "verification_piece": "Du hast Teil {0} von {1}.",
+  "verification_threshold": "Du brauchst mindestens {0} Teile, um wiederherzustellen.",
+  "verification_manifest_ok": "Das verschlüsselte Archiv ist enthalten.",
+  "verification_manifest_missing": "Du musst das verschlüsselte Archiv bei der Wiederherstellung hinzufügen.",
+  "verification_keep_safe": "Bewahre dieses Paket an einem sicheren Ort auf. Wenn es soweit ist, führst du dein Teil mit den anderen zusammen."
 }
