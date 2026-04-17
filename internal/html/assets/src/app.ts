@@ -341,13 +341,27 @@ type UIShare = ParsedShare & { isHolder?: boolean };
 
     // Load embedded manifest if available (included when MANIFEST.age is small enough)
     if (personalization.manifestB64) {
-      const binary = atob(personalization.manifestB64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
+      try {
+        const binary = atob(personalization.manifestB64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        state.manifest = bytes;
+        showManifestLoaded('MANIFEST.age', state.manifest.length, 'embedded');
+      } catch (err) {
+        // atob throws DOMException on corrupt base64 (bit rot, truncated copy,
+        // storage degradation). Surface it so the user knows to try another
+        // copy of recover.html rather than assuming they need MANIFEST.age
+        // separately.
+        showError(
+          t('error_corrupt_embedded_manifest_message'),
+          {
+            title: t('error_corrupt_embedded_manifest_title'),
+            guidance: t('error_corrupt_embedded_manifest_guidance'),
+          }
+        );
       }
-      state.manifest = bytes;
-      showManifestLoaded('MANIFEST.age', state.manifest.length, 'embedded');
     }
 
     checkRecoverReady();
